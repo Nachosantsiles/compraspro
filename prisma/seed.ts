@@ -304,6 +304,25 @@ async function main() {
 
   console.log("✅ Centros de costo de Fincas creados");
 
+  // ── UNIDADES DE MEDIDA ────────────────────────────────────────────
+
+  const unidadesBase = [
+    "unid", "kg", "g", "tn",
+    "L", "mL",
+    "m", "m²", "mm",
+    "caja", "bolsa", "rollo", "par", "juego", "servicio",
+  ];
+
+  for (const nombre of unidadesBase) {
+    await prisma.unidadMedida.upsert({
+      where: { nombre },
+      update: {},
+      create: { nombre, activo: true },
+    });
+  }
+
+  console.log("✅ Unidades de medida creadas");
+
   // ── CATEGORÍAS Y SUBCATEGORÍAS ────────────────────────────────────
 
   const categoriasData = [

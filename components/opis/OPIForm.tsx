@@ -48,6 +48,7 @@ interface OPIFormProps {
   fincas: Finca[];
   ccFincas: CCFinca[];
   categorias: CatData[];
+  unidades: string[];
   pedidoInicial?: PedidoInicial;
   defaultEmpresaId?: string;
   userName?: string;
@@ -55,7 +56,7 @@ interface OPIFormProps {
 
 const FINCA_DEPTS = ["FINCA", "ADMINISTRACION", "TALLER"];
 
-export function OPIForm({ empresas, fincas, ccFincas, categorias, pedidoInicial, defaultEmpresaId, userName }: OPIFormProps) {
+export function OPIForm({ empresas, fincas, ccFincas, categorias, unidades, pedidoInicial, defaultEmpresaId, userName }: OPIFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -87,7 +88,7 @@ export function OPIForm({ empresas, fincas, ccFincas, categorias, pedidoInicial,
           subCategoriaId: i.subCategoriaId,
           itemPedidoId: i.id,
         }))
-      : [{ id: crypto.randomUUID(), categoriaId: "", subCategoriaId: "", presentacion: "", unidadMedida: "unid", cantidad: 1 }]
+      : [{ id: crypto.randomUUID(), categoriaId: "", subCategoriaId: "", presentacion: "", unidadMedida: unidades[0] ?? "unid", cantidad: 1 }]
   );
 
   const empresa = empresas.find((e) => e.id === empresaId);
@@ -250,6 +251,7 @@ export function OPIForm({ empresas, fincas, ccFincas, categorias, pedidoInicial,
           items={items}
           onChange={setItems}
           categorias={categorias}
+          unidades={unidades}
           empresaTipo={empresa?.tipo ?? ""}
         />
       </div>

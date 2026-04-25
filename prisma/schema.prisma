@@ -90,6 +90,13 @@ model CentroCostoFinca {
   opis    OPI[]
 }
 
+// ─── UNIDADES DE MEDIDA ──────────────────────────────────────────────
+model UnidadMedida {
+  id     String  @id @default(cuid())
+  nombre String  @unique
+  activo Boolean @default(true)
+}
+
 // ─── CATEGORÍAS DE PEDIDO ────────────────────────────────────────────
 model Categoria {
   id     String  @id @default(cuid())

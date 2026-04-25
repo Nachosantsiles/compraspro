@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getFormData } from "@/lib/queries/opis";
 import { getAllCategorias } from "@/lib/queries/categorias";
+import { getUnidades } from "@/lib/queries/unidades";
 import { PedidoForm } from "@/components/pedidos/PedidoForm";
 
 export default async function NuevoPedidoPage() {
@@ -13,10 +14,12 @@ export default async function NuevoPedidoPage() {
   const user = session.user as any;
   if (!["admin", "tecnico"].includes(user.rol)) redirect("/dashboard/pedidos");
 
-  const [{ empresas, fincas, ccFincas }, categorias] = await Promise.all([
+  const [{ empresas, fincas, ccFincas }, categorias, unidadesDB] = await Promise.all([
     getFormData(),
     getAllCategorias(),
+    getUnidades(),
   ]);
+  const unidades = unidadesDB.map((u) => u.nombre);
 
   return (
     <div className="p-6 max-w-4xl">
@@ -33,6 +36,7 @@ export default async function NuevoPedidoPage() {
         fincas={fincas}
         ccFincas={ccFincas}
         categorias={categorias}
+        unidades={unidades}
         defaultEmpresaId={user.empresaId ?? undefined}
         userName={`${user.name}`}
       />

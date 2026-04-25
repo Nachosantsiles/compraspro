@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { SelectField } from "@/components/ui/SelectField";
 import { crearCategoria, crearSubCategoria } from "@/lib/actions/categorias";
+import { crearUnidad } from "@/lib/actions/unidades";
 
 export interface ItemPedidoRow {
   id: string;
@@ -32,27 +33,24 @@ interface PedidoItemsTableProps {
   items: ItemPedidoRow[];
   onChange: (items: ItemPedidoRow[]) => void;
   categorias: CatData[];
-  empresaTipo: string; // "industrial" | "agropecuario" | ""
+  unidades: string[];           // nombres de unidades disponibles
+  empresaTipo: string;          // "industrial" | "agropecuario" | ""
   readOnly?: boolean;
 }
 
-const UNIDADES = [
-  "unid", "kg", "g", "tn",
-  "L", "mL",
-  "m", "m²", "mm",
-  "caja", "bolsa", "rollo", "par", "juego", "servicio",
-];
+const NEW_CAT_VALUE  = "__nueva_categoria__";
+const NEW_SUB_VALUE  = "__nueva_subcategoria__";
+const NEW_UNID_VALUE = "__nueva_unidad__";
 
-const NEW_CAT_VALUE = "__nueva_categoria__";
-const NEW_SUB_VALUE = "__nueva_subcategoria__";
+type InlineState = Record<string, { open: boolean; nombre: string; loading: boolean }>;
 
-function newRow(): ItemPedidoRow {
+function newRow(defaultUnidad: string): ItemPedidoRow {
   return {
     id: crypto.randomUUID(),
     categoriaId: "",
     subCategoriaId: "",
     presentacion: "",
-    unidadMedida: "unid",
+    unidadMedida: defaultUnidad || "unid",
     cantidad: 1,
   };
 }
@@ -61,37 +59,31 @@ export function PedidoItemsTable({
   items,
   onChange,
   categorias: initialCategorias,
+  unidades: initialUnidades,
   empresaTipo,
   readOnly,
 }: PedidoItemsTableProps) {
-  // Estado local de categorías (crece cuando el usuario agrega nuevas)
+  // ── Estado local (crece cuando el usuario agrega nuevos) ───────────
   const [categorias, setCategorias] = useState<CatData[]>(initialCategorias);
+  const [unidades, setUnidades]     = useState<string[]>(initialUnidades);
 
-  // Estado para el panel "agregar nueva categoría" por ítem
-  const [newCatState, setNewCatState] = useState<
-    Record<string, { open: boolean; nombre: string; loading: boolean }>
-  >({});
+  const [newCatState,  setNewCatState]  = useState<InlineState>({});
+  const [newSubState,  setNewSubState]  = useState<InlineState>({});
+  const [newUnidState, setNewUnidState] = useState<InlineState>({});
 
-  // Estado para el panel "agregar nueva subcategoría" por ítem
-  const [newSubState, setNewSubState] = useState<
-    Record<string, { open: boolean; nombre: string; loading: boolean }>
-  >({});
-
-  // Filtro por tipo de empresa
+  // ── Filtro categorías por empresa ──────────────────────────────────
   const catsFiltradas = categorias.filter((c) => {
     if (!empresaTipo) return true;
-    const tipoEmpresa = empresaTipo === "agropecuario" ? ["finca", "todas"] : ["fabrica", "todas"];
-    return tipoEmpresa.includes(c.tipo);
+    const tipos = empresaTipo === "agropecuario" ? ["finca", "todas"] : ["fabrica", "todas"];
+    return tipos.includes(c.tipo);
   });
-
-  // Tipo de categoría que aplica (para crear nuevas)
   const tipoNuevaCat = empresaTipo === "agropecuario" ? "finca" : "fabrica";
 
+  // ── Helpers ────────────────────────────────────────────────────────
   function update(id: string, field: keyof ItemPedidoRow, value: string | number) {
     onChange(
       items.map((r) => {
         if (r.id !== id) return r;
-        // Al cambiar categoría, limpiar subcategoría
         if (field === "categoriaId") return { ...r, categoriaId: value as string, subCategoriaId: "" };
         return { ...r, [field]: value };
       })
@@ -102,8 +94,7 @@ export function PedidoItemsTable({
     onChange(items.filter((r) => r.id !== id));
   }
 
-  // ── CATEGORÍA ─────────────────────────────────────────────────────
-
+  // ── CATEGORÍA ──────────────────────────────────────────────────────
   function handleCatChange(rowId: string, value: string) {
     if (value === NEW_CAT_VALUE) {
       setNewCatState((s) => ({ ...s, [rowId]: { open: true, nombre: "", loading: false } }));
@@ -124,20 +115,16 @@ export function PedidoItemsTable({
       return;
     }
     const nueva = res.categoria!;
-    setCategorias((prev) => [
-      ...prev,
-      { id: nueva.id, nombre: nueva.nombre, tipo: nueva.tipo, subcategorias: [] },
-    ]);
+    setCategorias((prev) => [...prev, { id: nueva.id, nombre: nueva.nombre, tipo: nueva.tipo, subcategorias: [] }]);
     update(rowId, "categoriaId", nueva.id);
     setNewCatState((s) => ({ ...s, [rowId]: { open: false, nombre: "", loading: false } }));
   }
 
-  function handleCancelNewCat(rowId: string) {
+  function cancelNewCat(rowId: string) {
     setNewCatState((s) => ({ ...s, [rowId]: { open: false, nombre: "", loading: false } }));
   }
 
-  // ── SUBCATEGORÍA ──────────────────────────────────────────────────
-
+  // ── SUBCATEGORÍA ───────────────────────────────────────────────────
   function handleSubChange(rowId: string, value: string) {
     if (value === NEW_SUB_VALUE) {
       setNewSubState((s) => ({ ...s, [rowId]: { open: true, nombre: "", loading: false } }));
@@ -169,9 +156,43 @@ export function PedidoItemsTable({
     setNewSubState((s) => ({ ...s, [rowId]: { open: false, nombre: "", loading: false } }));
   }
 
-  function handleCancelNewSub(rowId: string) {
+  function cancelNewSub(rowId: string) {
     setNewSubState((s) => ({ ...s, [rowId]: { open: false, nombre: "", loading: false } }));
   }
+
+  // ── UNIDAD DE MEDIDA ───────────────────────────────────────────────
+  function handleUnidChange(rowId: string, value: string) {
+    if (value === NEW_UNID_VALUE) {
+      setNewUnidState((s) => ({ ...s, [rowId]: { open: true, nombre: "", loading: false } }));
+      return;
+    }
+    update(rowId, "unidadMedida", value);
+  }
+
+  async function handleSaveNewUnid(rowId: string) {
+    const state = newUnidState[rowId];
+    if (!state?.nombre.trim()) return;
+    setNewUnidState((s) => ({ ...s, [rowId]: { ...s[rowId], loading: true } }));
+
+    const res = await crearUnidad(state.nombre.trim());
+    if (res.error) {
+      alert(res.error);
+      setNewUnidState((s) => ({ ...s, [rowId]: { ...s[rowId], loading: false } }));
+      return;
+    }
+    const nuevaUnidad = res.unidad!.nombre;
+    // Agregar al listado local si no estaba
+    setUnidades((prev) => prev.includes(nuevaUnidad) ? prev : [...prev, nuevaUnidad].sort());
+    update(rowId, "unidadMedida", nuevaUnidad);
+    setNewUnidState((s) => ({ ...s, [rowId]: { open: false, nombre: "", loading: false } }));
+  }
+
+  function cancelNewUnid(rowId: string) {
+    setNewUnidState((s) => ({ ...s, [rowId]: { open: false, nombre: "", loading: false } }));
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────
+  const defaultUnidad = unidades[0] ?? "unid";
 
   return (
     <div className="space-y-3">
@@ -185,7 +206,7 @@ export function PedidoItemsTable({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => onChange([...items, newRow()])}
+            onClick={() => onChange([...items, newRow(defaultUnidad)])}
           >
             + Agregar ítem
           </Button>
@@ -198,19 +219,16 @@ export function PedidoItemsTable({
         </div>
       )}
 
-      {/* Filas */}
       {items.map((row, i) => {
-        const catSeleccionada = categorias.find((c) => c.id === row.categoriaId);
-        const subsDisponibles = catSeleccionada?.subcategorias ?? [];
-        const newCat = newCatState[row.id];
-        const newSub = newSubState[row.id];
+        const catSel       = categorias.find((c) => c.id === row.categoriaId);
+        const subsDisp     = catSel?.subcategorias ?? [];
+        const newCat       = newCatState[row.id];
+        const newSub       = newSubState[row.id];
+        const newUnid      = newUnidState[row.id];
 
         return (
-          <div
-            key={row.id}
-            className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3"
-          >
-            {/* Número de ítem + botón eliminar */}
+          <div key={row.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+            {/* Encabezado del ítem */}
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-gray-400">Ítem {i + 1}</span>
               {!readOnly && (
@@ -233,26 +251,15 @@ export function PedidoItemsTable({
               {/* Categoría */}
               <div>
                 {newCat?.open ? (
-                  <div>
-                    <p className="text-xs font-medium text-gray-700 mb-1">Nueva categoría</p>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nombre de la categoría..."
-                        value={newCat.nombre}
-                        onChange={(e) =>
-                          setNewCatState((s) => ({ ...s, [row.id]: { ...s[row.id], nombre: e.target.value } }))
-                        }
-                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSaveNewCat(row.id); } }}
-                        autoFocus
-                      />
-                      <Button type="button" size="sm" loading={newCat.loading} onClick={() => handleSaveNewCat(row.id)}>
-                        Guardar
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => handleCancelNewCat(row.id)}>
-                        ×
-                      </Button>
-                    </div>
-                  </div>
+                  <InlineInput
+                    label="Nueva categoría"
+                    placeholder="Nombre de la categoría..."
+                    value={newCat.nombre}
+                    loading={newCat.loading}
+                    onChange={(v) => setNewCatState((s) => ({ ...s, [row.id]: { ...s[row.id], nombre: v } }))}
+                    onSave={() => handleSaveNewCat(row.id)}
+                    onCancel={() => cancelNewCat(row.id)}
+                  />
                 ) : (
                   <SelectField
                     label="Categoría"
@@ -272,26 +279,15 @@ export function PedidoItemsTable({
               {/* Subcategoría */}
               <div>
                 {newSub?.open ? (
-                  <div>
-                    <p className="text-xs font-medium text-gray-700 mb-1">Nueva subcategoría</p>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nombre de la subcategoría..."
-                        value={newSub.nombre}
-                        onChange={(e) =>
-                          setNewSubState((s) => ({ ...s, [row.id]: { ...s[row.id], nombre: e.target.value } }))
-                        }
-                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSaveNewSub(row.id, row.categoriaId); } }}
-                        autoFocus
-                      />
-                      <Button type="button" size="sm" loading={newSub.loading} onClick={() => handleSaveNewSub(row.id, row.categoriaId)}>
-                        Guardar
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => handleCancelNewSub(row.id)}>
-                        ×
-                      </Button>
-                    </div>
-                  </div>
+                  <InlineInput
+                    label="Nueva subcategoría"
+                    placeholder="Nombre de la subcategoría..."
+                    value={newSub.nombre}
+                    loading={newSub.loading}
+                    onChange={(v) => setNewSubState((s) => ({ ...s, [row.id]: { ...s[row.id], nombre: v } }))}
+                    onSave={() => handleSaveNewSub(row.id, row.categoriaId)}
+                    onCancel={() => cancelNewSub(row.id)}
+                  />
                 ) : (
                   <SelectField
                     label="Subcategoría"
@@ -300,7 +296,7 @@ export function PedidoItemsTable({
                     disabled={readOnly || !row.categoriaId}
                     required
                     options={[
-                      ...subsDisponibles.map((s) => ({ value: s.id, label: s.nombre })),
+                      ...subsDisp.map((s) => ({ value: s.id, label: s.nombre })),
                       ...(readOnly || !row.categoriaId ? [] : [{ value: NEW_SUB_VALUE, label: "＋ Agregar nueva subcategoría..." }]),
                     ]}
                     placeholder={!row.categoriaId ? "Primero elegí categoría" : "Seleccioná subcategoría..."}
@@ -311,6 +307,7 @@ export function PedidoItemsTable({
 
             {/* Fila 2: Presentación → Unidad → Cantidad */}
             <div className="grid grid-cols-6 gap-3">
+              {/* Presentación */}
               <div className="col-span-3">
                 <Input
                   label="Presentación"
@@ -321,15 +318,34 @@ export function PedidoItemsTable({
                   required
                 />
               </div>
+
+              {/* Unidad de medida */}
               <div className="col-span-2">
-                <SelectField
-                  label="Unidad de medida"
-                  value={row.unidadMedida}
-                  onChange={(e) => update(row.id, "unidadMedida", e.target.value)}
-                  options={UNIDADES.map((u) => ({ value: u, label: u }))}
-                  disabled={readOnly}
-                />
+                {newUnid?.open ? (
+                  <InlineInput
+                    label="Nueva unidad"
+                    placeholder="Ej: pallet, carga..."
+                    value={newUnid.nombre}
+                    loading={newUnid.loading}
+                    onChange={(v) => setNewUnidState((s) => ({ ...s, [row.id]: { ...s[row.id], nombre: v } }))}
+                    onSave={() => handleSaveNewUnid(row.id)}
+                    onCancel={() => cancelNewUnid(row.id)}
+                  />
+                ) : (
+                  <SelectField
+                    label="Unidad de medida"
+                    value={row.unidadMedida}
+                    onChange={(e) => handleUnidChange(row.id, e.target.value)}
+                    disabled={readOnly}
+                    options={[
+                      ...unidades.map((u) => ({ value: u, label: u })),
+                      ...(readOnly ? [] : [{ value: NEW_UNID_VALUE, label: "＋ Agregar nueva unidad..." }]),
+                    ]}
+                  />
+                )}
               </div>
+
+              {/* Cantidad */}
               <div className="col-span-1">
                 <Input
                   label="Cantidad"
@@ -346,6 +362,46 @@ export function PedidoItemsTable({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ── Componente auxiliar reutilizable ───────────────────────────────────
+function InlineInput({
+  label,
+  placeholder,
+  value,
+  loading,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  loading: boolean;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-gray-700 mb-1">{label}</p>
+      <div className="flex gap-2">
+        <Input
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onSave(); } if (e.key === "Escape") onCancel(); }}
+          autoFocus
+        />
+        <Button type="button" size="sm" loading={loading} onClick={onSave}>
+          Guardar
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+          ×
+        </Button>
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getFormData } from "@/lib/queries/opis";
 import { getPedidoById } from "@/lib/queries/pedidos";
 import { getAllCategorias } from "@/lib/queries/categorias";
+import { getUnidades } from "@/lib/queries/unidades";
 import { OPIForm } from "@/components/opis/OPIForm";
 
 interface PageProps {
@@ -18,11 +19,13 @@ export default async function NuevaOPIPage({ searchParams }: PageProps) {
   const user = session.user as any;
   if (!["admin", "comprador"].includes(user.rol)) redirect("/dashboard/opis");
 
-  const [{ empresas, fincas, ccFincas }, categorias, pedido] = await Promise.all([
+  const [{ empresas, fincas, ccFincas }, categorias, unidadesDB, pedido] = await Promise.all([
     getFormData(),
     getAllCategorias(),
+    getUnidades(),
     searchParams.pedidoId ? getPedidoById(searchParams.pedidoId) : Promise.resolve(null),
   ]);
+  const unidades = unidadesDB.map((u) => u.nombre);
 
   // Normalise pedido for the form (only pass what the form needs)
   const pedidoInicial = pedido
@@ -61,6 +64,7 @@ export default async function NuevaOPIPage({ searchParams }: PageProps) {
         fincas={fincas}
         ccFincas={ccFincas}
         categorias={categorias}
+        unidades={unidades}
         pedidoInicial={pedidoInicial}
         defaultEmpresaId={user.empresaId ?? undefined}
         userName={user.name}

@@ -42,13 +42,14 @@ interface PedidoFormProps {
   fincas: Finca[];
   ccFincas: CCFinca[];
   categorias: CatData[];
+  unidades: string[];
   defaultEmpresaId?: string;
   userName?: string;
 }
 
 const FINCA_DEPTS = ["FINCA", "ADMINISTRACION", "TALLER"];
 
-export function PedidoForm({ empresas, fincas, ccFincas, categorias, defaultEmpresaId, userName }: PedidoFormProps) {
+export function PedidoForm({ empresas, fincas, ccFincas, categorias, unidades, defaultEmpresaId, userName }: PedidoFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -67,7 +68,7 @@ export function PedidoForm({ empresas, fincas, ccFincas, categorias, defaultEmpr
   const [descripcion, setDescripcion] = useState("");
   const [urgencia, setUrgencia] = useState("Media");
   const [items, setItems] = useState<ItemPedidoRow[]>([
-    { id: crypto.randomUUID(), categoriaId: "", subCategoriaId: "", presentacion: "", unidadMedida: "unid", cantidad: 1 },
+    { id: crypto.randomUUID(), categoriaId: "", subCategoriaId: "", presentacion: "", unidadMedida: unidades[0] ?? "unid", cantidad: 1 },
   ]);
 
   const empresa = empresas.find((e) => e.id === empresaId);
@@ -283,6 +284,7 @@ export function PedidoForm({ empresas, fincas, ccFincas, categorias, defaultEmpr
           items={items}
           onChange={setItems}
           categorias={categorias}
+          unidades={unidades}
           empresaTipo={empresa?.tipo ?? ""}
         />
       </div>
