@@ -1,0 +1,433 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USUARIOS Y ROLES ───────────────────────────────────────────────
+model Usuario {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nombre    String
+  apellido  String
+  password  String
+  rol       String   // admin | tecnico | finanzas | comprador | almacen
+  empresaId String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  empresa          Empresa?          @relation(fields: [empresaId], references: [id])
+  pedidosCreados   Pedido[]          @relation("PedidoCreador")
+  autecRealizadas  AutorizacionTec[] @relation("AutecAprobador")
+  opisCreadas      OPI[]             @relation("OPICreador")
+  cotizaciones     Cotizacion[]      @relation("CotizacionCreador")
+  autfinRealizadas AutorizacionFin[] @relation("AutFinAprobador")
+  pagos            Pago[]            @relation("PagoCreador")
+  recepciones      Recepcion[]       @relation("RecepcionCreador")
+  reclamos         Reclamo[]         @relation("ReclamoCreador")
+}
+
+// ─── EMPRESAS ────────────────────────────────────────────────────────
+model Empresa {
+  id         String @id
+  nombre     String
+  tipo       String
+  color      String
+  estructura String
+
+  departamentos Departamento[]
+  fincas        Finca[]
+  usuarios      Usuario[]
+  pedidos       Pedido[]
+  opis          OPI[]
+}
+
+model Departamento {
+  id        String @id @default(cuid())
+  codigo    String
+  nombre    String
+  empresaId String
+
+  empresa      Empresa       @relation(fields: [empresaId], references: [id])
+  centrosCosto CentroCosto[]
+
+  @@unique([codigo, empresaId])
+}
+
+model CentroCosto {
+  id             String @id @default(cuid())
+  codigo         String @unique
+  descripcion    String
+  departamentoId String
+
+  departamento Departamento @relation(fields: [departamentoId], references: [id])
+  pedidos      Pedido[]
+  opis         OPI[]
+}
+
+model Finca {
+  id        String @id
+  nombre    String
+  empresaId String
+
+  empresa Empresa  @relation(fields: [empresaId], references: [id])
+  pedidos Pedido[]
+  opis    OPI[]
+}
+
+model CentroCostoFinca {
+  id           String  @id @default(cuid())
+  tipo         String  // GASTOS | INVERSIONES
+  categoria    String
+  subcategoria String?
+  descripcion  String
+
+  pedidos Pedido[]
+  opis    OPI[]
+}
+
+// ─── PROVEEDORES ─────────────────────────────────────────────────────
+model Proveedor {
+  id        String   @id @default(cuid())
+  nombre    String
+  cuit      String?  @unique
+  email     String?
+  telefono  String?
+  direccion String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cotizaciones  Cotizacion[]
+  ordenesCompra OrdenCompra[]
+  facturas      Factura[]
+  reclamos      Reclamo[]
+}
+
+// ─── PEDIDOS ─────────────────────────────────────────────────────────
+model Pedido {
+  id          String   @id @default(cuid())
+  numero      String   @unique
+  empresaId   String
+  fincaId     String?
+  ccId        String?
+  ccFincaId   String?
+  solicitante String
+  descripcion String
+  urgencia    String   @default("Normal")   // Normal | Alta | Critica
+  estado      String   @default("pendiente_autec")
+  creadorId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  empresa          Empresa           @relation(fields: [empresaId], references: [id])
+  finca            Finca?            @relation(fields: [fincaId], references: [id])
+  centroCosto      CentroCosto?      @relation(fields: [ccId], references: [id])
+  centroCostoFinca CentroCostoFinca? @relation(fields: [ccFincaId], references: [id])
+  creador          Usuario           @relation("PedidoCreador", fields: [creadorId], references: [id])
+  items            ItemPedido[]
+  autTecnica       AutorizacionTec?
+  opi              OPI?
+}
+
+model ItemPedido {
+  id           String  @id @default(cuid())
+  pedidoId     String
+  cantidad     Float
+  unidadMedida String
+  descripcion  String
+  marca        String?
+  orden        Int     @default(0)
+
+  pedido   Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  itemsOPI ItemOPI[]
+}
+
+// ─── AUTORIZACIÓN TÉCNICA ────────────────────────────────────────────
+model AutorizacionTec {
+  id          String    @id @default(cuid())
+  pedidoId    String    @unique
+  aprobadorId String?
+  estado      String    @default("pendiente") // pendiente | aprobada | rechazada
+  comentario  String?
+  fecha       DateTime?
+  createdAt   DateTime  @default(now())
+
+  pedido    Pedido   @relation(fields: [pedidoId], references: [id])
+  aprobador Usuario? @relation("AutecAprobador", fields: [aprobadorId], references: [id])
+}
+
+// ─── OPI ─────────────────────────────────────────────────────────────
+model OPI {
+  id            String    @id @default(cuid())
+  numero        String    @unique
+  pedidoId      String    @unique
+  empresaId     String
+  fincaId       String?
+  ccId          String?
+  ccFincaId     String?
+  solicitante   String
+  descripcion   String
+  observaciones String?
+  urgencia      String    @default("Normal")
+  estado        String    @default("pendiente_cotizacion")
+  creadorId     String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  pedido           Pedido            @relation(fields: [pedidoId], references: [id])
+  empresa          Empresa           @relation(fields: [empresaId], references: [id])
+  finca            Finca?            @relation(fields: [fincaId], references: [id])
+  centroCosto      CentroCosto?      @relation(fields: [ccId], references: [id])
+  centroCostoFinca CentroCostoFinca? @relation(fields: [ccFincaId], references: [id])
+  creador          Usuario           @relation("OPICreador", fields: [creadorId], references: [id])
+  items            ItemOPI[]
+  cotizaciones     Cotizacion[]
+  autFinanciera    AutorizacionFin?
+  ordenCompra      OrdenCompra?
+}
+
+model ItemOPI {
+  id           String  @id @default(cuid())
+  opiId        String
+  itemPedidoId String?
+  cantidad     Float
+  unidadMedida String
+  descripcion  String
+  marca        String?
+  orden        Int     @default(0)
+
+  opi        OPI         @relation(fields: [opiId], references: [id], onDelete: Cascade)
+  itemPedido ItemPedido? @relation(fields: [itemPedidoId], references: [id])
+  itemsCot   ItemCotizacion[]
+}
+
+// ─── COTIZACIONES ────────────────────────────────────────────────────
+model Cotizacion {
+  id            String   @id @default(cuid())
+  numero        String   @unique
+  opiId         String
+  proveedorId   String
+  creadorId     String
+  estado        String   @default("pendiente") // pendiente | recibida | seleccionada | rechazada
+  seleccionada  Boolean  @default(false)
+  condiciones   String?
+  validezDias   Int?
+  moneda        String   @default("ARS")
+  total         Float    @default(0)
+  observaciones String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  opi       OPI              @relation(fields: [opiId], references: [id])
+  proveedor Proveedor        @relation(fields: [proveedorId], references: [id])
+  creador   Usuario          @relation("CotizacionCreador", fields: [creadorId], references: [id])
+  items     ItemCotizacion[]
+}
+
+model ItemCotizacion {
+  id             String  @id @default(cuid())
+  cotizacionId   String
+  itemOPIId      String
+  precioUnitario Float
+  cantidad       Float
+  subtotal       Float
+  observaciones  String?
+
+  cotizacion Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  itemOPI    ItemOPI    @relation(fields: [itemOPIId], references: [id])
+}
+
+// ─── AUTORIZACIÓN FINANCIERA ─────────────────────────────────────────
+model AutorizacionFin {
+  id          String    @id @default(cuid())
+  opiId       String    @unique
+  aprobadorId String?
+  estado      String    @default("pendiente") // pendiente | aprobada | rechazada
+  comentario  String?
+  fecha       DateTime?
+  createdAt   DateTime  @default(now())
+
+  opi       OPI      @relation(fields: [opiId], references: [id])
+  aprobador Usuario? @relation("AutFinAprobador", fields: [aprobadorId], references: [id])
+}
+
+// ─── ÓRDENES DE COMPRA ───────────────────────────────────────────────
+model OrdenCompra {
+  id            String    @id @default(cuid())
+  numero        String    @unique
+  opiId         String    @unique
+  proveedorId   String
+  estado        String    @default("borrador") // borrador | emitida | recibida_parcial | recibida | cancelada
+  moneda        String    @default("ARS")
+  total         Float     @default(0)
+  condiciones   String?
+  plazoEntrega  String?
+  observaciones String?
+  emitidaAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  opi         OPI         @relation(fields: [opiId], references: [id])
+  proveedor   Proveedor   @relation(fields: [proveedorId], references: [id])
+  items       ItemOC[]
+  facturas    Factura[]
+  recepciones Recepcion[]
+}
+
+model ItemOC {
+  id             String @id @default(cuid())
+  ocId           String
+  descripcion    String
+  cantidad       Float
+  unidadMedida   String
+  precioUnitario Float
+  subtotal       Float
+  cantRecibida   Float  @default(0)
+  orden          Int    @default(0)
+
+  oc             OrdenCompra     @relation(fields: [ocId], references: [id], onDelete: Cascade)
+  itemsRecepcion ItemRecepcion[]
+}
+
+// ─── FACTURAS ────────────────────────────────────────────────────────
+model Factura {
+  id           String    @id @default(cuid())
+  numero       String
+  tipo         String    // A, B, C, E
+  ocId         String
+  proveedorId  String
+  estado       String    @default("pendiente") // pendiente | pagada | vencida | pagada_parcial
+  moneda       String    @default("ARS")
+  subtotal     Float
+  iva          Float     @default(0)
+  total        Float
+  fechaEmision DateTime
+  fechaVto     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  oc        OrdenCompra   @relation(fields: [ocId], references: [id])
+  proveedor Proveedor     @relation(fields: [proveedorId], references: [id])
+  pagos     PagoFactura[]
+
+  @@unique([numero, proveedorId])
+}
+
+// ─── PAGOS ───────────────────────────────────────────────────────────
+model Pago {
+  id            String   @id @default(cuid())
+  numero        String   @unique
+  creadorId     String
+  medio         String   // transferencia | cheque | efectivo
+  moneda        String   @default("ARS")
+  total         Float
+  fecha         DateTime
+  referencia    String?
+  observaciones String?
+  createdAt     DateTime @default(now())
+
+  creador  Usuario       @relation("PagoCreador", fields: [creadorId], references: [id])
+  facturas PagoFactura[]
+}
+
+model PagoFactura {
+  id        String @id @default(cuid())
+  pagoId    String
+  facturaId String
+  monto     Float
+
+  pago    Pago    @relation(fields: [pagoId], references: [id])
+  factura Factura @relation(fields: [facturaId], references: [id])
+
+  @@unique([pagoId, facturaId])
+}
+
+// ─── RECEPCIONES ─────────────────────────────────────────────────────
+model Recepcion {
+  id             String   @id @default(cuid())
+  numero         String   @unique
+  ocId           String
+  creadorId      String
+  estado         String   @default("pendiente_control") // pendiente_control | aprobada | con_diferencias | bloqueada
+  fechaRecepcion DateTime
+  observaciones  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  oc       OrdenCompra     @relation(fields: [ocId], references: [id])
+  creador  Usuario         @relation("RecepcionCreador", fields: [creadorId], references: [id])
+  items    ItemRecepcion[]
+  reclamos Reclamo[]
+}
+
+model ItemRecepcion {
+  id            String  @id @default(cuid())
+  recepcionId   String
+  itemOCId      String
+  cantPedida    Float
+  cantRecibida  Float
+  diferencia    Float   @default(0)
+  estado        String  @default("ok") // ok | diferencia | faltante | exceso
+  observaciones String?
+
+  recepcion Recepcion @relation(fields: [recepcionId], references: [id], onDelete: Cascade)
+  itemOC    ItemOC    @relation(fields: [itemOCId], references: [id])
+}
+
+// ─── RECLAMOS ────────────────────────────────────────────────────────
+model Reclamo {
+  id             String    @id @default(cuid())
+  numero         String    @unique
+  recepcionId    String
+  proveedorId    String
+  creadorId      String
+  estado         String    @default("abierto") // abierto | enviado | en_negociacion | resuelto | cerrado_sin_resolucion
+  motivo         String
+  descripcion    String?
+  resolucion     String?   // reposicion | nota_de_credito | baja_item
+  notaCredito    Float?
+  fechaEnvio     DateTime?
+  fechaRespuesta DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  recepcion Recepcion @relation(fields: [recepcionId], references: [id])
+  proveedor Proveedor @relation(fields: [proveedorId], references: [id])
+  creador   Usuario   @relation("ReclamoCreador", fields: [creadorId], references: [id])
+}
+
+// ─── STOCK ───────────────────────────────────────────────────────────
+model Articulo {
+  id           String   @id @default(cuid())
+  codigo       String   @unique
+  descripcion  String
+  unidadMedida String
+  stockActual  Float    @default(0)
+  stockMinimo  Float    @default(0)
+  stockMaximo  Float?
+  ubicacion    String?
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  movimientos MovimientoStock[]
+}
+
+model MovimientoStock {
+  id          String   @id @default(cuid())
+  articuloId  String
+  tipo        String   // entrada | salida | ajuste
+  cantidad    Float
+  saldoPost   Float
+  referencia  String?
+  descripcion String?
+  fecha       DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  articulo Articulo @relation(fields: [articuloId], references: [id])
+}
