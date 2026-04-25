@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { SelectField } from "@/components/ui/SelectField";
 import { Textarea } from "@/components/ui/Textarea";
-import { ItemsFormTable, type ItemRow } from "@/components/shared/ItemsFormTable";
+import { PedidoItemsTable, type ItemPedidoRow, type CatData } from "@/components/pedidos/PedidoItemsTable";
 import { crearOPI } from "@/lib/actions/opis";
 
 interface Empresa {
   id: string;
   nombre: string;
+  tipo: string;
   color: string;
+  estructura: string;
   departamentos: Array<{
     id: string;
     codigo: string;
@@ -31,13 +33,21 @@ interface PedidoInicial {
   solicitante: string;
   descripcion: string;
   urgencia: string;
-  items: Array<{ id: string; cantidad: number; unidadMedida: string; descripcion: string; marca: string | null; }>;
+  items: Array<{
+    id: string;
+    cantidad: number;
+    unidadMedida: string;
+    presentacion: string;
+    categoriaId: string;
+    subCategoriaId: string;
+  }>;
 }
 
 interface OPIFormProps {
   empresas: Empresa[];
   fincas: Finca[];
   ccFincas: CCFinca[];
+  categorias: CatData[];
   pedidoInicial?: PedidoInicial;
   defaultEmpresaId?: string;
   userName?: string;
@@ -45,7 +55,7 @@ interface OPIFormProps {
 
 const FINCA_DEPTS = ["FINCA", "ADMINISTRACION", "TALLER"];
 
-export function OPIForm({ empresas, fincas, ccFincas, pedidoInicial, defaultEmpresaId, userName }: OPIFormProps) {
+export function OPIForm({ empresas, fincas, ccFincas, categorias, pedidoInicial, defaultEmpresaId, userName }: OPIFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -64,19 +74,20 @@ export function OPIForm({ empresas, fincas, ccFincas, pedidoInicial, defaultEmpr
   const [solicitante, setSolicitante] = useState(pedidoInicial?.solicitante ?? userName ?? "");
   const [descripcion, setDescripcion] = useState(pedidoInicial?.descripcion ?? "");
   const [observaciones, setObservaciones] = useState("");
-  const [urgencia, setUrgencia] = useState(pedidoInicial?.urgencia ?? "Normal");
+  const [urgencia, setUrgencia] = useState(pedidoInicial?.urgencia ?? "Media");
 
-  const [items, setItems] = useState<ItemRow[]>(
+  const [items, setItems] = useState<ItemPedidoRow[]>(
     pedidoInicial?.items.length
       ? pedidoInicial.items.map((i) => ({
           id: crypto.randomUUID(),
           cantidad: i.cantidad,
           unidadMedida: i.unidadMedida,
-          descripcion: i.descripcion,
-          marca: i.marca ?? "",
+          presentacion: i.presentacion,
+          categoriaId: i.categoriaId,
+          subCategoriaId: i.subCategoriaId,
           itemPedidoId: i.id,
         }))
-      : [{ id: crypto.randomUUID(), cantidad: 1, unidadMedida: "unidad", descripcion: "", marca: "" }]
+      : [{ id: crypto.randomUUID(), categoriaId: "", subCategoriaId: "", presentacion: "", unidadMedida: "unid", cantidad: 1 }]
   );
 
   const empresa = empresas.find((e) => e.id === empresaId);
@@ -85,8 +96,10 @@ export function OPIForm({ empresas, fincas, ccFincas, pedidoInicial, defaultEmpr
   const dept = depts.find((d) => d.id === deptId);
   const ccs = dept?.centrosCosto ?? [];
   const fincasFiltradas = fincas.filter((f) => f.empresaId === "fincas_grupo_cazorla");
-  const categorias = esFincas ? Array.from(new Set(ccFincas.filter((c) => c.tipo === tipoImp).map((c) => c.categoria))) : [];
-  const subcategorias = esFincas
+  const categoriasCC = esFincas
+    ? Array.from(new Set(ccFincas.filter((c) => c.tipo === tipoImp).map((c) => c.categoria)))
+    : [];
+  const subcategoriasCC = esFincas
     ? ccFincas.filter((c) => c.tipo === tipoImp && c.categoria === categoria && c.subcategoria).map((c) => c.subcategoria as string)
     : [];
 
@@ -107,7 +120,12 @@ export function OPIForm({ empresas, fincas, ccFincas, pedidoInicial, defaultEmpr
     if (!empresaId) return setError("Seleccioná una empresa");
     if (!esFincas && !ccId) return setError("Seleccioná un centro de costo");
     if (esFincas && !ccFincaId) return setError("Seleccioná la imputación de costo");
-    if (items.some((i) => !i.descripcion.trim())) return setError("Completá la descripción de todos los ítems");
+    if (items.length === 0) return setError("Agregá al menos un ítem");
+
+    const itemInvalido = items.find(
+      (i) => !i.categoriaId || !i.subCategoriaId || !i.presentacion.trim() || i.cantidad <= 0
+    );
+    if (itemInvalido) return setError("Completá todos los campos de cada ítem");
 
     setLoading(true);
     const res = await crearOPI({
@@ -123,8 +141,9 @@ export function OPIForm({ empresas, fincas, ccFincas, pedidoInicial, defaultEmpr
       items: items.map((i) => ({
         cantidad: i.cantidad,
         unidadMedida: i.unidadMedida,
-        descripcion: i.descripcion,
-        marca: i.marca || undefined,
+        presentacion: i.presentacion,
+        categoriaId: i.categoriaId,
+        subCategoriaId: i.subCategoriaId,
         itemPedidoId: i.itemPedidoId,
       })),
     });
@@ -195,10 +214,10 @@ export function OPIForm({ empresas, fincas, ccFincas, pedidoInicial, defaultEmpr
                 onChange={(e) => { setTipoImp(e.target.value); setCategoria(""); setSubcategoria(""); setCcFincaId(""); }}
                 options={["GASTOS", "INVERSIONES"].map((t) => ({ value: t, label: t }))} placeholder="Seleccioná..." required />
               <SelectField label="Categoría" value={categoria} onChange={(e) => handleCatChange(e.target.value)}
-                options={categorias.map((c) => ({ value: c, label: c.replace(/_/g, " ") }))} placeholder="Seleccioná..." disabled={!tipoImp} required />
-              {subcategorias.length > 0 && (
+                options={categoriasCC.map((c) => ({ value: c, label: c.replace(/_/g, " ") }))} placeholder="Seleccioná..." disabled={!tipoImp} required />
+              {subcategoriasCC.length > 0 && (
                 <SelectField label="Subcategoría" value={subcategoria} onChange={(e) => handleSubcatChange(e.target.value)}
-                  options={subcategorias.map((s) => ({ value: s, label: s }))} placeholder="Seleccioná..." required />
+                  options={subcategoriasCC.map((s) => ({ value: s, label: s }))} placeholder="Seleccioná..." required />
               )}
             </div>
           </>
@@ -210,8 +229,16 @@ export function OPIForm({ empresas, fincas, ccFincas, pedidoInicial, defaultEmpr
         <h3 className="text-sm font-semibold text-gray-900">Datos de la OPI</h3>
         <div className="grid grid-cols-2 gap-4">
           <Input label="Solicitante" value={solicitante} onChange={(e) => setSolicitante(e.target.value)} required />
-          <SelectField label="Urgencia" value={urgencia} onChange={(e) => setUrgencia(e.target.value)}
-            options={[{ value: "Normal", label: "Normal" }, { value: "Alta", label: "Alta" }, { value: "Critica", label: "Crítica" }]} />
+          <SelectField
+            label="Urgencia"
+            value={urgencia}
+            onChange={(e) => setUrgencia(e.target.value)}
+            options={[
+              { value: "Baja", label: "Baja" },
+              { value: "Media", label: "Media" },
+              { value: "Critica", label: "Crítica" },
+            ]}
+          />
         </div>
         <Textarea label="Descripción" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required />
         <Textarea label="Observaciones" value={observaciones} onChange={(e) => setObservaciones(e.target.value)} hint="Opcional" />
@@ -219,7 +246,12 @@ export function OPIForm({ empresas, fincas, ccFincas, pedidoInicial, defaultEmpr
 
       {/* Ítems */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <ItemsFormTable items={items} onChange={setItems} />
+        <PedidoItemsTable
+          items={items}
+          onChange={setItems}
+          categorias={categorias}
+          empresaTipo={empresa?.tipo ?? ""}
+        />
       </div>
 
       {error && (

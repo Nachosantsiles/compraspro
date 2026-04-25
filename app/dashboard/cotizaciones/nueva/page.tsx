@@ -21,7 +21,13 @@ export default async function NuevaCotizacionPage({ searchParams }: PageProps) {
   const [opi, proveedores] = await Promise.all([
     prisma.oPI.findUnique({
       where: { id: searchParams.opiId },
-      include: { items: { orderBy: { orden: "asc" } }, empresa: true },
+      include: {
+        items: {
+          include: { categoria: true, subCategoria: true },
+          orderBy: { orden: "asc" },
+        },
+        empresa: true,
+      },
     }),
     prisma.proveedor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
   ]);

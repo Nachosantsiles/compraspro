@@ -6,14 +6,15 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { SelectField } from "@/components/ui/SelectField";
 import { Textarea } from "@/components/ui/Textarea";
-import { ItemsFormTable, type ItemRow } from "@/components/shared/ItemsFormTable";
+import { PedidoItemsTable, type ItemPedidoRow, type CatData } from "@/components/pedidos/PedidoItemsTable";
 import { crearPedido } from "@/lib/actions/pedidos";
-import { EMPRESA_COLORS } from "@/lib/utils";
 
 interface Empresa {
   id: string;
   nombre: string;
+  tipo: string;
   color: string;
+  estructura: string;
   departamentos: Array<{
     id: string;
     codigo: string;
@@ -40,13 +41,14 @@ interface PedidoFormProps {
   empresas: Empresa[];
   fincas: Finca[];
   ccFincas: CCFinca[];
+  categorias: CatData[];
   defaultEmpresaId?: string;
   userName?: string;
 }
 
 const FINCA_DEPTS = ["FINCA", "ADMINISTRACION", "TALLER"];
 
-export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userName }: PedidoFormProps) {
+export function PedidoForm({ empresas, fincas, ccFincas, categorias, defaultEmpresaId, userName }: PedidoFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -63,9 +65,9 @@ export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userN
 
   const [solicitante, setSolicitante] = useState(userName ?? "");
   const [descripcion, setDescripcion] = useState("");
-  const [urgencia, setUrgencia] = useState("Normal");
-  const [items, setItems] = useState<ItemRow[]>([
-    { id: crypto.randomUUID(), cantidad: 1, unidadMedida: "unidad", descripcion: "", marca: "" },
+  const [urgencia, setUrgencia] = useState("Media");
+  const [items, setItems] = useState<ItemPedidoRow[]>([
+    { id: crypto.randomUUID(), categoriaId: "", subCategoriaId: "", presentacion: "", unidadMedida: "unid", cantidad: 1 },
   ]);
 
   const empresa = empresas.find((e) => e.id === empresaId);
@@ -76,12 +78,15 @@ export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userN
 
   const fincasFiltradas = fincas.filter((f) => f.empresaId === "fincas_grupo_cazorla");
   const tipos = esFincas ? ["GASTOS", "INVERSIONES"] : [];
-  const categorias = esFincas ? Array.from(new Set(ccFincas.filter((c) => c.tipo === tipoImp).map((c) => c.categoria))) : [];
-  const subcategorias = esFincas
-    ? ccFincas.filter((c) => c.tipo === tipoImp && c.categoria === categoria && c.subcategoria).map((c) => c.subcategoria as string)
+  const categoriasCC = esFincas
+    ? Array.from(new Set(ccFincas.filter((c) => c.tipo === tipoImp).map((c) => c.categoria)))
+    : [];
+  const subcategoriasCC = esFincas
+    ? ccFincas
+        .filter((c) => c.tipo === tipoImp && c.categoria === categoria && c.subcategoria)
+        .map((c) => c.subcategoria as string)
     : [];
 
-  // Sync ccFincaId when selection changes
   function handleCategoriaChange(cat: string) {
     setCategoria(cat);
     setSubcategoria("");
@@ -92,7 +97,9 @@ export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userN
 
   function handleSubcategoriaChange(sub: string) {
     setSubcategoria(sub);
-    const match = ccFincas.find((c) => c.tipo === tipoImp && c.categoria === categoria && c.subcategoria === sub);
+    const match = ccFincas.find(
+      (c) => c.tipo === tipoImp && c.categoria === categoria && c.subcategoria === sub
+    );
     if (match) setCcFincaId(match.id);
   }
 
@@ -103,7 +110,12 @@ export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userN
     if (!empresaId) return setError("Seleccioná una empresa");
     if (!esFincas && !ccId) return setError("Seleccioná un centro de costo");
     if (esFincas && !ccFincaId) return setError("Seleccioná la imputación de costo");
-    if (items.some((i) => !i.descripcion.trim())) return setError("Completá la descripción de todos los ítems");
+    if (items.length === 0) return setError("Agregá al menos un ítem");
+
+    const itemInvalido = items.find(
+      (i) => !i.categoriaId || !i.subCategoriaId || !i.presentacion.trim() || i.cantidad <= 0
+    );
+    if (itemInvalido) return setError("Completá todos los campos de cada ítem");
 
     setLoading(true);
     const res = await crearPedido({
@@ -117,8 +129,9 @@ export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userN
       items: items.map((i) => ({
         cantidad: i.cantidad,
         unidadMedida: i.unidadMedida,
-        descripcion: i.descripcion,
-        marca: i.marca || undefined,
+        presentacion: i.presentacion,
+        categoriaId: i.categoriaId,
+        subCategoriaId: i.subCategoriaId,
       })),
     });
 
@@ -132,7 +145,7 @@ export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userN
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
-      {/* Empresa */}
+      {/* Empresa e imputación */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <h3 className="text-sm font-semibold text-gray-900">Empresa e imputación</h3>
 
@@ -199,7 +212,10 @@ export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userN
               <SelectField
                 label="Tipo imputación"
                 value={tipoImp}
-                onChange={(e) => { setTipoImp(e.target.value); setCategoria(""); setSubcategoria(""); setCcFincaId(""); }}
+                onChange={(e) => {
+                  setTipoImp(e.target.value);
+                  setCategoria(""); setSubcategoria(""); setCcFincaId("");
+                }}
                 options={tipos.map((t) => ({ value: t, label: t }))}
                 placeholder="Seleccioná..."
                 required
@@ -208,17 +224,17 @@ export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userN
                 label="Categoría"
                 value={categoria}
                 onChange={(e) => handleCategoriaChange(e.target.value)}
-                options={categorias.map((c) => ({ value: c, label: c.replace(/_/g, " ") }))}
+                options={categoriasCC.map((c) => ({ value: c, label: c.replace(/_/g, " ") }))}
                 placeholder="Seleccioná..."
                 disabled={!tipoImp}
                 required
               />
-              {subcategorias.length > 0 && (
+              {subcategoriasCC.length > 0 && (
                 <SelectField
                   label="Subcategoría"
                   value={subcategoria}
                   onChange={(e) => handleSubcategoriaChange(e.target.value)}
-                  options={subcategorias.map((s) => ({ value: s, label: s }))}
+                  options={subcategoriasCC.map((s) => ({ value: s, label: s }))}
                   placeholder="Seleccioná..."
                   required
                 />
@@ -245,8 +261,8 @@ export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userN
             value={urgencia}
             onChange={(e) => setUrgencia(e.target.value)}
             options={[
-              { value: "Normal", label: "Normal" },
-              { value: "Alta", label: "Alta" },
+              { value: "Baja", label: "Baja" },
+              { value: "Media", label: "Media" },
               { value: "Critica", label: "Crítica" },
             ]}
           />
@@ -263,7 +279,12 @@ export function PedidoForm({ empresas, fincas, ccFincas, defaultEmpresaId, userN
 
       {/* Items */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <ItemsFormTable items={items} onChange={setItems} />
+        <PedidoItemsTable
+          items={items}
+          onChange={setItems}
+          categorias={categorias}
+          empresaTipo={empresa?.tipo ?? ""}
+        />
       </div>
 
       {error && (

@@ -60,7 +60,7 @@ export async function aprobarAutFin(opiId: string, comentario?: string) {
           emitidaAt: new Date(),
           items: {
             create: cotizGanadora.items.map((ci, i) => ({
-              descripcion: ci.itemOPI.descripcion,
+              descripcion: ci.itemOPI.presentacion,
               cantidad: ci.cantidad,
               unidadMedida: ci.itemOPI.unidadMedida,
               precioUnitario: ci.precioUnitario,

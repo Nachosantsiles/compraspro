@@ -304,6 +304,109 @@ async function main() {
 
   console.log("✅ Centros de costo de Fincas creados");
 
+  // ── CATEGORÍAS Y SUBCATEGORÍAS ────────────────────────────────────
+
+  const categoriasData = [
+    // ── FÁBRICA ───────────────────────────────────────────────────────
+    {
+      nombre: "Insumos Químicos", tipo: "fabrica",
+      subs: ["Ácidos y bases", "Solventes", "Aditivos alimentarios", "Productos de laboratorio", "Otros químicos"],
+    },
+    {
+      nombre: "Repuestos de Maquinaria", tipo: "fabrica",
+      subs: ["Rodamientos y bujes", "Correas y cadenas", "Filtros", "Válvulas y accesorios", "Elementos de sujeción", "Otros repuestos"],
+    },
+    {
+      nombre: "Materiales de Oficina", tipo: "fabrica",
+      subs: ["Papelería y útiles", "Cartuchos e impresión", "Insumos informáticos", "Otros materiales de oficina"],
+    },
+    {
+      nombre: "Material Auxiliar de Producción", tipo: "fabrica",
+      subs: ["Embalaje y packaging", "Etiquetas y rótulos", "Film y zuncho", "Pallets y tarimas", "Otros auxiliares"],
+    },
+    {
+      nombre: "Materiales de Limpieza", tipo: "fabrica",
+      subs: ["Productos de limpieza", "Descartables e higiene", "Equipos de limpieza"],
+    },
+    {
+      nombre: "Seguridad e Higiene", tipo: "fabrica",
+      subs: ["EPP (casco, guantes, etc.)", "Señalización", "Botiquín y primeros auxilios", "Extintores y equipos contra incendio"],
+    },
+    {
+      nombre: "Servicios y Mantenimiento", tipo: "fabrica",
+      subs: ["Servicio técnico externo", "Calibración de equipos", "Reparaciones civiles y edilicias", "Otros servicios"],
+    },
+    // ── FINCA ─────────────────────────────────────────────────────────
+    {
+      nombre: "Agroquímicos", tipo: "finca",
+      subs: ["Fungicidas", "Insecticidas", "Herbicidas", "Bactericidas", "Acaricidas", "Coadyuvantes", "Otros agroquímicos"],
+    },
+    {
+      nombre: "Fertilizantes", tipo: "finca",
+      subs: ["Fertilizantes foliares", "Fertilizantes edáficos", "Enmiendas y correctores", "Otros fertilizantes"],
+    },
+    {
+      nombre: "Repuestos Maquinaria Agrícola", tipo: "finca",
+      subs: ["Repuestos de tractores", "Repuestos de implementos", "Filtros agrícolas", "Otros repuestos agrícolas"],
+    },
+    {
+      nombre: "Herramientas", tipo: "finca",
+      subs: ["Herramientas manuales", "Herramientas eléctricas", "Herramientas de corte y poda", "Otras herramientas"],
+    },
+    {
+      nombre: "Materiales de Oficina", tipo: "finca",
+      subs: ["Papelería y útiles", "Insumos informáticos", "Otros materiales de oficina"],
+    },
+    {
+      nombre: "Materiales de Limpieza", tipo: "finca",
+      subs: ["Productos de limpieza", "Descartables e higiene"],
+    },
+    {
+      nombre: "Seguridad e Higiene", tipo: "finca",
+      subs: ["EPP (casco, guantes, etc.)", "Señalización", "Botiquín y primeros auxilios", "Extintores y equipos contra incendio"],
+    },
+    {
+      nombre: "Combustibles y Lubricantes", tipo: "finca",
+      subs: ["Gasoil", "Nafta", "Lubricantes y aceites", "Otros combustibles"],
+    },
+    // ── TODAS ─────────────────────────────────────────────────────────
+    {
+      nombre: "Materiales de Construcción", tipo: "todas",
+      subs: [
+        "Cemento y adhesivos", "Áridos", "Ladrillos y bloques",
+        "Hierro y acero", "Caños y tuberías", "Cables y electricidad",
+        "Pintura y revestimientos", "Aberturas y vidrios", "Otros materiales de construcción",
+      ],
+    },
+  ];
+
+  for (const cat of categoriasData) {
+    const categoria = await prisma.categoria.upsert({
+      where: { id: `cat_${cat.tipo}_${cat.nombre.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "")}` },
+      update: {},
+      create: {
+        id: `cat_${cat.tipo}_${cat.nombre.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "")}`,
+        nombre: cat.nombre,
+        tipo: cat.tipo,
+        activo: true,
+      },
+    });
+    for (const subNombre of cat.subs) {
+      await prisma.subCategoria.upsert({
+        where: { id: `sub_${categoria.id}_${subNombre.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "")}` },
+        update: {},
+        create: {
+          id: `sub_${categoria.id}_${subNombre.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "")}`,
+          nombre: subNombre,
+          categoriaId: categoria.id,
+          activo: true,
+        },
+      });
+    }
+  }
+
+  console.log("✅ Categorías y subcategorías creadas");
+
   // ── USUARIOS DEMO ─────────────────────────────────────────────────
 
   const passwordHash = await bcrypt.hash("compras2024", 10);

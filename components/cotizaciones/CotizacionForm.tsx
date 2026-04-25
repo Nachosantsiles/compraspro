@@ -13,9 +13,10 @@ interface ItemOPI {
   id: string;
   cantidad: number;
   unidadMedida: string;
-  descripcion: string;
-  marca: string | null;
+  presentacion: string;
   orden: number;
+  categoria: { nombre: string };
+  subCategoria: { nombre: string };
 }
 
 interface OPIParaForm {
@@ -166,8 +167,8 @@ export function CotizacionForm({ opi, proveedores }: CotizacionFormProps) {
                 <tr key={item.id}>
                   <td className="py-3 pr-4 text-gray-400 text-xs">{item.orden + 1}</td>
                   <td className="py-3 pr-4">
-                    <p className="text-gray-800 font-medium">{item.descripcion}</p>
-                    {item.marca && <p className="text-xs text-gray-400">{item.marca}</p>}
+                    <p className="text-gray-800 font-medium">{item.presentacion}</p>
+                    <p className="text-xs text-gray-400">{item.categoria.nombre} · {item.subCategoria.nombre}</p>
                   </td>
                   <td className="py-3 pr-4 text-right text-gray-600">
                     {item.cantidad} {item.unidadMedida}

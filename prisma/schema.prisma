@@ -90,6 +90,29 @@ model CentroCostoFinca {
   opis    OPI[]
 }
 
+// ─── CATEGORÍAS DE PEDIDO ────────────────────────────────────────────
+model Categoria {
+  id     String  @id @default(cuid())
+  nombre String
+  tipo   String  // fabrica | finca | todas
+  activo Boolean @default(true)
+
+  subcategorias SubCategoria[]
+  itemsPedido   ItemPedido[]
+  itemsOPI      ItemOPI[]
+}
+
+model SubCategoria {
+  id          String  @id @default(cuid())
+  nombre      String
+  categoriaId String
+  activo      Boolean @default(true)
+
+  categoria   Categoria    @relation(fields: [categoriaId], references: [id])
+  itemsPedido ItemPedido[]
+  itemsOPI    ItemOPI[]
+}
+
 // ─── PROVEEDORES ─────────────────────────────────────────────────────
 model Proveedor {
   id        String   @id @default(cuid())
@@ -135,16 +158,19 @@ model Pedido {
 }
 
 model ItemPedido {
-  id           String  @id @default(cuid())
-  pedidoId     String
-  cantidad     Float
-  unidadMedida String
-  descripcion  String
-  marca        String?
-  orden        Int     @default(0)
+  id             String @id @default(cuid())
+  pedidoId       String
+  categoriaId    String
+  subCategoriaId String
+  presentacion   String
+  unidadMedida   String // kg | g | L | mL | m | m² | mm | unid | tn
+  cantidad       Float
+  orden          Int    @default(0)
 
-  pedido   Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  itemsOPI ItemOPI[]
+  pedido       Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  categoria    Categoria    @relation(fields: [categoriaId], references: [id])
+  subCategoria SubCategoria @relation(fields: [subCategoriaId], references: [id])
+  itemsOPI     ItemOPI[]
 }
 
 // ─── AUTORIZACIÓN TÉCNICA ────────────────────────────────────────────
@@ -192,18 +218,21 @@ model OPI {
 }
 
 model ItemOPI {
-  id           String  @id @default(cuid())
-  opiId        String
-  itemPedidoId String?
-  cantidad     Float
-  unidadMedida String
-  descripcion  String
-  marca        String?
-  orden        Int     @default(0)
+  id             String @id @default(cuid())
+  opiId          String
+  itemPedidoId   String?
+  categoriaId    String
+  subCategoriaId String
+  presentacion   String
+  unidadMedida   String
+  cantidad       Float
+  orden          Int    @default(0)
 
-  opi        OPI         @relation(fields: [opiId], references: [id], onDelete: Cascade)
-  itemPedido ItemPedido? @relation(fields: [itemPedidoId], references: [id])
-  itemsCot   ItemCotizacion[]
+  opi          OPI          @relation(fields: [opiId], references: [id], onDelete: Cascade)
+  itemPedido   ItemPedido?  @relation(fields: [itemPedidoId], references: [id])
+  categoria    Categoria    @relation(fields: [categoriaId], references: [id])
+  subCategoria SubCategoria @relation(fields: [subCategoriaId], references: [id])
+  itemsCot     ItemCotizacion[]
 }
 
 // ─── COTIZACIONES ────────────────────────────────────────────────────

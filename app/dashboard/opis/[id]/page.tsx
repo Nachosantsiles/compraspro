@@ -187,9 +187,10 @@ export default async function OPIDetallePage({ params }: { params: { id: string 
               <tr className="border-b border-gray-100">
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">#</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Cant.</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Presentación</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Unidad</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Descripción</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Marca</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Categoría</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Subcategoría</th>
                 {cotizGanadora && (
                   <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500">Precio unit.</th>
                 )}
@@ -202,9 +203,10 @@ export default async function OPIDetallePage({ params }: { params: { id: string 
                   <tr key={item.id}>
                     <td className="px-6 py-3 text-gray-400">{item.orden + 1}</td>
                     <td className="px-6 py-3 font-medium">{item.cantidad}</td>
+                    <td className="px-6 py-3">{item.presentacion}</td>
                     <td className="px-6 py-3 text-gray-600">{item.unidadMedida}</td>
-                    <td className="px-6 py-3">{item.descripcion}</td>
-                    <td className="px-6 py-3 text-gray-500">{item.marca ?? "—"}</td>
+                    <td className="px-6 py-3 text-gray-700">{item.categoria.nombre}</td>
+                    <td className="px-6 py-3 text-gray-600">{item.subCategoria.nombre}</td>
                     {cotizGanadora && (
                       <td className="px-6 py-3 text-right text-gray-700">
                         {itemCot ? formatCurrency(itemCot.precioUnitario, cotizGanadora.moneda) : "—"}

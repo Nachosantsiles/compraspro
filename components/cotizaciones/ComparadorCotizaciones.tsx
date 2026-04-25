@@ -13,7 +13,9 @@ interface ItemOPI {
   orden: number;
   cantidad: number;
   unidadMedida: string;
-  descripcion: string;
+  presentacion: string;
+  categoria: { nombre: string };
+  subCategoria: { nombre: string };
 }
 
 interface ItemCot {
@@ -125,7 +127,8 @@ export function ComparadorCotizaciones({
               {opisItems.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 sticky left-0 bg-white">
-                    <p className="text-gray-800 font-medium truncate max-w-[190px]">{item.descripcion}</p>
+                    <p className="text-gray-800 font-medium truncate max-w-[190px]">{item.presentacion}</p>
+                    <p className="text-xs text-gray-400">{item.categoria.nombre} · {item.subCategoria.nombre}</p>
                     <p className="text-xs text-gray-400">{item.cantidad} {item.unidadMedida}</p>
                   </td>
                   {cotizaciones.map((c) => {

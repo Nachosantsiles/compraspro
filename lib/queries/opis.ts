@@ -42,7 +42,13 @@ export async function getOPIById(id: string) {
       centroCosto: { include: { departamento: true } },
       centroCostoFinca: true,
       creador: { select: { id: true, nombre: true, apellido: true, rol: true } },
-      items: { orderBy: { orden: "asc" } },
+      items: {
+        include: {
+          categoria: true,
+          subCategoria: true,
+        },
+        orderBy: { orden: "asc" },
+      },
       cotizaciones: {
         include: {
           proveedor: true,

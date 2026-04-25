@@ -103,8 +103,8 @@ export const ESTADO_COLORS: Record<string, string> = {
 };
 
 export const URGENCIA_COLORS: Record<string, string> = {
-  Normal: "bg-gray-100 text-gray-700",
-  Alta: "bg-amber-100 text-amber-800",
+  Baja: "bg-gray-100 text-gray-700",
+  Media: "bg-amber-100 text-amber-800",
   Critica: "bg-red-100 text-red-800",
 };
 

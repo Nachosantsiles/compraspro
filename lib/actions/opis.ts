@@ -9,8 +9,9 @@ import { nextOPINumero } from "@/lib/numbers";
 interface ItemOPIInput {
   cantidad: number;
   unidadMedida: string;
-  descripcion: string;
-  marca?: string;
+  presentacion: string;
+  categoriaId: string;
+  subCategoriaId: string;
   itemPedidoId?: string;
 }
 
@@ -66,8 +67,9 @@ export async function crearOPI(input: CrearOPIInput) {
           create: input.items.map((item, i) => ({
             cantidad: item.cantidad,
             unidadMedida: item.unidadMedida,
-            descripcion: item.descripcion,
-            marca: item.marca ?? null,
+            presentacion: item.presentacion,
+            categoriaId: item.categoriaId,
+            subCategoriaId: item.subCategoriaId,
             itemPedidoId: item.itemPedidoId ?? null,
             orden: i,
           })),

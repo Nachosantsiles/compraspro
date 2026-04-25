@@ -9,8 +9,9 @@ import { nextPedidoNumero } from "@/lib/numbers";
 interface ItemInput {
   cantidad: number;
   unidadMedida: string;
-  descripcion: string;
-  marca?: string;
+  presentacion: string;
+  categoriaId: string;
+  subCategoriaId: string;
 }
 
 interface CrearPedidoInput {
@@ -52,8 +53,9 @@ export async function crearPedido(input: CrearPedidoInput) {
           create: input.items.map((item, i) => ({
             cantidad: item.cantidad,
             unidadMedida: item.unidadMedida,
-            descripcion: item.descripcion,
-            marca: item.marca ?? null,
+            presentacion: item.presentacion,
+            categoriaId: item.categoriaId,
+            subCategoriaId: item.subCategoriaId,
             orden: i,
           })),
         },

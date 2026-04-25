@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getFormData } from "@/lib/queries/opis";
 import { getPedidoById } from "@/lib/queries/pedidos";
+import { getAllCategorias } from "@/lib/queries/categorias";
 import { OPIForm } from "@/components/opis/OPIForm";
 
 interface PageProps {
@@ -17,8 +18,9 @@ export default async function NuevaOPIPage({ searchParams }: PageProps) {
   const user = session.user as any;
   if (!["admin", "comprador"].includes(user.rol)) redirect("/dashboard/opis");
 
-  const [{ empresas, fincas, ccFincas }, pedido] = await Promise.all([
+  const [{ empresas, fincas, ccFincas }, categorias, pedido] = await Promise.all([
     getFormData(),
+    getAllCategorias(),
     searchParams.pedidoId ? getPedidoById(searchParams.pedidoId) : Promise.resolve(null),
   ]);
 
@@ -35,8 +37,9 @@ export default async function NuevaOPIPage({ searchParams }: PageProps) {
           id: i.id,
           cantidad: i.cantidad,
           unidadMedida: i.unidadMedida,
-          descripcion: i.descripcion,
-          marca: i.marca,
+          presentacion: i.presentacion,
+          categoriaId: i.categoriaId,
+          subCategoriaId: i.subCategoriaId,
         })),
       }
     : undefined;
@@ -57,6 +60,7 @@ export default async function NuevaOPIPage({ searchParams }: PageProps) {
         empresas={empresas}
         fincas={fincas}
         ccFincas={ccFincas}
+        categorias={categorias}
         pedidoInicial={pedidoInicial}
         defaultEmpresaId={user.empresaId ?? undefined}
         userName={user.name}

@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getFormData } from "@/lib/queries/opis";
+import { getAllCategorias } from "@/lib/queries/categorias";
 import { PedidoForm } from "@/components/pedidos/PedidoForm";
 
 export default async function NuevoPedidoPage() {
@@ -12,7 +13,10 @@ export default async function NuevoPedidoPage() {
   const user = session.user as any;
   if (!["admin", "tecnico"].includes(user.rol)) redirect("/dashboard/pedidos");
 
-  const { empresas, fincas, ccFincas } = await getFormData();
+  const [{ empresas, fincas, ccFincas }, categorias] = await Promise.all([
+    getFormData(),
+    getAllCategorias(),
+  ]);
 
   return (
     <div className="p-6 max-w-4xl">
@@ -28,6 +32,7 @@ export default async function NuevoPedidoPage() {
         empresas={empresas}
         fincas={fincas}
         ccFincas={ccFincas}
+        categorias={categorias}
         defaultEmpresaId={user.empresaId ?? undefined}
         userName={`${user.name}`}
       />
