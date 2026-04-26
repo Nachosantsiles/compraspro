@@ -29,6 +29,12 @@ export default async function PedidoDetallePage({ params }: { params: { id: stri
     ? `${pedido.centroCostoFinca.tipo} › ${pedido.centroCostoFinca.categoria}${pedido.centroCostoFinca.subcategoria ? ` › ${pedido.centroCostoFinca.subcategoria}` : ""}`
     : "—";
 
+  // Mapa de decisiones por ítem para la tabla
+  const decMap = new Map(
+    (pedido.autTecnica?.itemsAutTec ?? []).map((d) => [d.itemPedidoId, d])
+  );
+  const esAutecParcial = pedido.autTecnica?.estado === "aprobada_parcial";
+
   return (
     <div className="p-6 max-w-4xl space-y-5">
       {/* Breadcrumb */}
@@ -133,6 +139,8 @@ export default async function PedidoDetallePage({ params }: { params: { id: stri
               fecha={pedido.autTecnica.fecha}
               comentario={pedido.autTecnica.comentario}
               canAct={canAutec}
+              items={pedido.items}
+              itemsAutTec={pedido.autTecnica.itemsAutTec}
             />
           )}
         </div>
@@ -153,19 +161,48 @@ export default async function PedidoDetallePage({ params }: { params: { id: stri
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Unidad</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Categoría</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Subcategoría</th>
+                {esAutecParcial && (
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Autec</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {pedido.items.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-6 py-3 text-gray-400">{item.orden + 1}</td>
-                  <td className="px-6 py-3 font-medium text-gray-800">{item.cantidad}</td>
-                  <td className="px-6 py-3 text-gray-800">{item.presentacion}</td>
-                  <td className="px-6 py-3 text-gray-600">{item.unidadMedida}</td>
-                  <td className="px-6 py-3 text-gray-700">{item.categoria.nombre}</td>
-                  <td className="px-6 py-3 text-gray-600">{item.subCategoria.nombre}</td>
-                </tr>
-              ))}
+              {pedido.items.map((item) => {
+                const dec = decMap.get(item.id);
+                return (
+                  <tr
+                    key={item.id}
+                    className={
+                      dec?.estado === "denegado"  ? "bg-red-50/50" :
+                      dec?.estado === "modificado" ? "bg-amber-50/50" : ""
+                    }
+                  >
+                    <td className="px-6 py-3 text-gray-400">{item.orden + 1}</td>
+                    <td className="px-6 py-3 font-medium text-gray-800">{item.cantidad}</td>
+                    <td className="px-6 py-3 text-gray-800">{item.presentacion}</td>
+                    <td className="px-6 py-3 text-gray-600">{item.unidadMedida}</td>
+                    <td className="px-6 py-3 text-gray-700">{item.categoria.nombre}</td>
+                    <td className="px-6 py-3 text-gray-600">{item.subCategoria.nombre}</td>
+                    {esAutecParcial && (
+                      <td className="px-6 py-3">
+                        {!dec || dec.estado === "ok" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            ✓ OK
+                          </span>
+                        ) : dec.estado === "denegado" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            ✗ Denegado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                            ✏ → {dec.nuevaCantidad} {item.unidadMedida}
+                          </span>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

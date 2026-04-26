@@ -108,6 +108,82 @@ export async function aprobarAutTecnica(pedidoId: string, comentario?: string) {
   }
 }
 
+interface ItemDecision {
+  itemPedidoId: string;
+  estado: "ok" | "denegado" | "modificado";
+  nuevaCantidad?: number;
+}
+
+export async function aprobarParcialAutTecnica(
+  pedidoId: string,
+  decisions: ItemDecision[],
+  comentario?: string
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) return { error: "No autenticado" };
+
+  const user = session.user as any;
+  if (!["admin", "tecnico"].includes(user.rol)) return { error: "Sin permisos" };
+
+  if (!decisions.length) return { error: "Debe haber al menos un ítem" };
+
+  // Al menos un ítem aprobado (ok o modificado)
+  const aprobados = decisions.filter((d) => d.estado !== "denegado");
+  if (!aprobados.length) return { error: "Debe aprobar al menos un ítem. Si ninguno aplica, usá 'No autorizar'" };
+
+  // Items modificados deben tener nuevaCantidad válida
+  const invalido = decisions.find(
+    (d) => d.estado === "modificado" && (!d.nuevaCantidad || d.nuevaCantidad <= 0)
+  );
+  if (invalido) return { error: "Completá la nueva cantidad en los ítems modificados" };
+
+  try {
+    const autTec = await prisma.autorizacionTec.findUnique({ where: { pedidoId } });
+    if (!autTec) return { error: "Autorización técnica no encontrada" };
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Actualizar AutorizacionTec
+      await tx.autorizacionTec.update({
+        where: { pedidoId },
+        data: {
+          estado: "aprobada_parcial",
+          aprobadorId: user.id,
+          comentario: comentario ?? null,
+          fecha: new Date(),
+        },
+      });
+
+      // 2. Guardar decisiones por ítem
+      for (const d of decisions) {
+        await tx.itemAutTec.upsert({
+          where: { autTecId_itemPedidoId: { autTecId: autTec.id, itemPedidoId: d.itemPedidoId } },
+          update: { estado: d.estado, nuevaCantidad: d.nuevaCantidad ?? null },
+          create: {
+            autTecId: autTec.id,
+            itemPedidoId: d.itemPedidoId,
+            estado: d.estado,
+            nuevaCantidad: d.nuevaCantidad ?? null,
+          },
+        });
+      }
+
+      // 3. Avanzar estado del pedido (igual que aprobación total — el comprador verá las restricciones en la OPI)
+      await tx.pedido.update({
+        where: { id: pedidoId },
+        data: { estado: "aprobado_autec" },
+      });
+    });
+
+    revalidatePath(`/dashboard/pedidos/${pedidoId}`);
+    revalidatePath("/dashboard/pedidos");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { error: "Error al guardar la aprobación parcial" };
+  }
+}
+
 export async function rechazarAutTecnica(pedidoId: string, comentario: string) {
   const session = await getServerSession(authOptions);
   if (!session) return { error: "No autenticado" };

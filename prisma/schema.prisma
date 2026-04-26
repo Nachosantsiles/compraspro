@@ -178,6 +178,7 @@ model ItemPedido {
   categoria    Categoria    @relation(fields: [categoriaId], references: [id])
   subCategoria SubCategoria @relation(fields: [subCategoriaId], references: [id])
   itemsOPI     ItemOPI[]
+  autTecItems  ItemAutTec[]
 }
 
 // ─── AUTORIZACIÓN TÉCNICA ────────────────────────────────────────────
@@ -185,13 +186,27 @@ model AutorizacionTec {
   id          String    @id @default(cuid())
   pedidoId    String    @unique
   aprobadorId String?
-  estado      String    @default("pendiente") // pendiente | aprobada | rechazada
+  estado      String    @default("pendiente") // pendiente | aprobada | aprobada_parcial | rechazada
   comentario  String?
   fecha       DateTime?
   createdAt   DateTime  @default(now())
 
-  pedido    Pedido   @relation(fields: [pedidoId], references: [id])
-  aprobador Usuario? @relation("AutecAprobador", fields: [aprobadorId], references: [id])
+  pedido      Pedido       @relation(fields: [pedidoId], references: [id])
+  aprobador   Usuario?     @relation("AutecAprobador", fields: [aprobadorId], references: [id])
+  itemsAutTec ItemAutTec[]
+}
+
+model ItemAutTec {
+  id            String  @id @default(cuid())
+  autTecId      String
+  itemPedidoId  String
+  estado        String  @default("ok") // ok | denegado | modificado
+  nuevaCantidad Float?
+
+  autTec     AutorizacionTec @relation(fields: [autTecId], references: [id], onDelete: Cascade)
+  itemPedido ItemPedido      @relation(fields: [itemPedidoId], references: [id])
+
+  @@unique([autTecId, itemPedidoId])
 }
 
 // ─── OPI ─────────────────────────────────────────────────────────────

@@ -52,6 +52,7 @@ export async function getPedidoById(id: string) {
       autTecnica: {
         include: {
           aprobador: { select: { id: true, nombre: true, apellido: true } },
+          itemsAutTec: true,
         },
       },
       opi: { select: { id: true, numero: true, estado: true } },

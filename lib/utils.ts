@@ -36,6 +36,7 @@ export const ESTADO_LABELS: Record<string, string> = {
   // Pedido / OPI
   pendiente_autec: "Pendiente Aut. Técnica",
   aprobado_autec: "Aprobado Téc.",
+  aprobado_parcial_autec: "Aprobado Parcial",
   rechazado_autec: "Rechazado Téc.",
   pendiente_cotizacion: "Pendiente Cotización",
   cotizacion_completa: "Cotización Completa",
@@ -73,6 +74,7 @@ export const ESTADO_LABELS: Record<string, string> = {
 export const ESTADO_COLORS: Record<string, string> = {
   pendiente_autec: "bg-yellow-100 text-yellow-800",
   aprobado_autec: "bg-blue-100 text-blue-800",
+  aprobado_parcial_autec: "bg-amber-100 text-amber-800",
   rechazado_autec: "bg-red-100 text-red-800",
   pendiente_cotizacion: "bg-orange-100 text-orange-800",
   cotizacion_completa: "bg-indigo-100 text-indigo-800",
