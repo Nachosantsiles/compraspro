@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getPedidos } from "@/lib/queries/pedidos";
+import { verificarPedidosVencidos } from "@/lib/services/vencimientos";
 import { StatusBadge, UrgenciaBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +17,7 @@ const FILTROS = [
   { label: "Aprobados", value: "aprobado_autec" },
   { label: "Rechazados", value: "rechazado_autec" },
   { label: "Con OPI", value: "pendiente_cotizacion" },
+  { label: "Vencidos", value: "vencido_autec" },
 ];
 
 interface PageProps {
@@ -30,6 +32,11 @@ export default async function PedidosPage({ searchParams }: PageProps) {
   const rol = user.rol as RolEnum;
   const canCreate = ["admin", "tecnico"].includes(rol);
   const canAutec = ["admin", "tecnico"].includes(rol);
+
+  // Verificar vencimientos en cada carga de la página (silencioso)
+  await verificarPedidosVencidos().catch((e) =>
+    console.error("[verificarPedidosVencidos]", e)
+  );
 
   const pedidos = await getPedidos({
     estado: searchParams.estado,

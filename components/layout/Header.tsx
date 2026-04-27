@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { NavIcon } from "./NavIcon";
+import { NotificationBell } from "./NotificationBell";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -44,10 +45,7 @@ export function Header({ onMenuToggle, showMenuButton }: HeaderProps) {
       <h1 className="text-sm font-semibold text-gray-900 flex-1">{title}</h1>
 
       <div className="flex items-center gap-2">
-        <button className="relative p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
-          <NavIcon name="Bell" className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full" />
-        </button>
+        <NotificationBell />
       </div>
     </header>
   );

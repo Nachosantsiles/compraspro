@@ -29,6 +29,21 @@ model Usuario {
   pagos            Pago[]            @relation("PagoCreador")
   recepciones      Recepcion[]       @relation("RecepcionCreador")
   reclamos         Reclamo[]         @relation("ReclamoCreador")
+  notificaciones   Notificacion[]
+}
+
+// ─── NOTIFICACIONES ──────────────────────────────────────────────────
+model Notificacion {
+  id        String   @id @default(cuid())
+  usuarioId String
+  tipo      String   // pedido_vencido | ...
+  titulo    String
+  mensaje   String
+  leida     Boolean  @default(false)
+  pedidoId  String?  // referencia opcional al pedido
+  createdAt DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
 }
 
 // ─── EMPRESAS ────────────────────────────────────────────────────────
