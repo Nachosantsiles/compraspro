@@ -426,6 +426,95 @@ async function main() {
 
   console.log("✅ Categorías y subcategorías creadas");
 
+  // ── PRESENTACIONES POR SUBCATEGORÍA ──────────────────────────────
+  // Helper para generar IDs determinísticos (igual que categorías/subs)
+  function slugify(s: string) {
+    return s.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+  }
+
+  // [categoriaNombre, categoríaTipo, subcategoriaNombre, [presentaciones]]
+  const presData: [string, string, string, string[]][] = [
+    // INSUMOS QUÍMICOS
+    ["Insumos Químicos", "fabrica", "Ácidos y bases",          ["Bidón 5L", "Bidón 20L", "Tambor 200L", "Frasco 1L"]],
+    ["Insumos Químicos", "fabrica", "Solventes",               ["Bidón 5L", "Bidón 20L", "Tambor 200L", "Frasco 500mL"]],
+    ["Insumos Químicos", "fabrica", "Aditivos alimentarios",   ["Bolsa 25kg", "Bolsa 1kg", "Bidón 5L", "Bidón 20L"]],
+    ["Insumos Químicos", "fabrica", "Productos de laboratorio",["Frasco 100mL", "Frasco 500mL", "Frasco 1L", "Caja 100u"]],
+    // REPUESTOS MAQUINARIA
+    ["Repuestos de Maquinaria", "fabrica", "Rodamientos y bujes",     ["Unidad", "Par", "Caja 10u", "Kit"]],
+    ["Repuestos de Maquinaria", "fabrica", "Correas y cadenas",       ["Unidad", "Metro", "Rollo 5m"]],
+    ["Repuestos de Maquinaria", "fabrica", "Filtros",                 ["Unidad", "Caja 6u", "Caja 12u"]],
+    ["Repuestos de Maquinaria", "fabrica", "Válvulas y accesorios",   ["Unidad", "Par", "Juego"]],
+    ["Repuestos de Maquinaria", "fabrica", "Elementos de sujeción",   ["Caja 100u", "Bolsa 50u", "Unidad"]],
+    // MATERIALES DE OFICINA (fábrica)
+    ["Materiales de Oficina", "fabrica", "Papelería y útiles",       ["Resma 500h", "Caja 12u", "Unidad", "Pack x10"]],
+    ["Materiales de Oficina", "fabrica", "Cartuchos e impresión",    ["Unidad", "Pack x2", "Caja 4u"]],
+    ["Materiales de Oficina", "fabrica", "Insumos informáticos",     ["Unidad", "Caja", "Pack x5"]],
+    // MATERIAL AUXILIAR DE PRODUCCIÓN
+    ["Material Auxiliar de Producción", "fabrica", "Embalaje y packaging", ["Caja 100u", "Rollo", "Paquete 500u"]],
+    ["Material Auxiliar de Producción", "fabrica", "Etiquetas y rótulos",  ["Rollo 1000u", "Rollo 500u", "Caja"]],
+    ["Material Auxiliar de Producción", "fabrica", "Film y zuncho",        ["Rollo", "Caja 6 rollos"]],
+    ["Material Auxiliar de Producción", "fabrica", "Pallets y tarimas",    ["Unidad", "Lote 10u"]],
+    // MATERIALES DE LIMPIEZA (fábrica)
+    ["Materiales de Limpieza", "fabrica", "Productos de limpieza",   ["Bidón 5L", "Bidón 20L", "Bolsa 5kg", "Unidad"]],
+    ["Materiales de Limpieza", "fabrica", "Descartables e higiene",  ["Caja 100u", "Pack 50u", "Rollo"]],
+    // SEGURIDAD E HIGIENE (fábrica)
+    ["Seguridad e Higiene", "fabrica", "EPP (casco, guantes, etc.)", ["Unidad", "Par", "Caja 12u", "Bolsa 100u"]],
+    ["Seguridad e Higiene", "fabrica", "Señalización",               ["Unidad", "Lote 10u"]],
+    ["Seguridad e Higiene", "fabrica", "Botiquín y primeros auxilios",["Unidad", "Kit", "Caja"]],
+    // AGROQUÍMICOS
+    ["Agroquímicos", "finca", "Fungicidas",      ["Bolsa 1kg", "Bolsa 5kg", "Bidón 1L", "Bidón 5L", "Caja 12x1L"]],
+    ["Agroquímicos", "finca", "Insecticidas",    ["Bolsa 1kg", "Bidón 1L", "Bidón 5L", "Caja 12x1L"]],
+    ["Agroquímicos", "finca", "Herbicidas",      ["Bidón 1L", "Bidón 5L", "Bidón 20L", "Bolsa 5kg"]],
+    ["Agroquímicos", "finca", "Bactericidas",    ["Bidón 1L", "Bidón 5L", "Bolsa 1kg"]],
+    ["Agroquímicos", "finca", "Acaricidas",      ["Bidón 1L", "Bidón 5L", "Bolsa 1kg"]],
+    ["Agroquímicos", "finca", "Coadyuvantes",    ["Bidón 5L", "Bidón 20L", "Tambor 200L"]],
+    // FERTILIZANTES
+    ["Fertilizantes", "finca", "Fertilizantes foliares",  ["Bidón 1L", "Bidón 5L", "Bidón 20L", "Bolsa 1kg"]],
+    ["Fertilizantes", "finca", "Fertilizantes edáficos",  ["Bolsa 25kg", "Bolsa 50kg", "Big Bag 500kg", "Big Bag 1tn"]],
+    ["Fertilizantes", "finca", "Enmiendas y correctores", ["Bolsa 25kg", "Bolsa 50kg", "Big Bag 500kg"]],
+    // REPUESTOS MAQUINARIA AGRÍCOLA
+    ["Repuestos Maquinaria Agrícola", "finca", "Repuestos de tractores",    ["Unidad", "Par", "Kit", "Caja"]],
+    ["Repuestos Maquinaria Agrícola", "finca", "Repuestos de implementos",  ["Unidad", "Par", "Juego"]],
+    ["Repuestos Maquinaria Agrícola", "finca", "Filtros agrícolas",         ["Unidad", "Caja 6u", "Caja 12u"]],
+    // HERRAMIENTAS
+    ["Herramientas", "finca", "Herramientas manuales",          ["Unidad", "Par", "Juego", "Caja"]],
+    ["Herramientas", "finca", "Herramientas eléctricas",        ["Unidad", "Kit"]],
+    ["Herramientas", "finca", "Herramientas de corte y poda",   ["Unidad", "Par", "Caja 6u"]],
+    // COMBUSTIBLES Y LUBRICANTES
+    ["Combustibles y Lubricantes", "finca", "Gasoil",               ["Litros (carga cisterna)", "Bidón 20L", "Tambor 200L"]],
+    ["Combustibles y Lubricantes", "finca", "Lubricantes y aceites",["Bidón 4L", "Bidón 20L", "Tambor 200L"]],
+    // MATERIALES DE CONSTRUCCIÓN
+    ["Materiales de Construcción", "todas", "Cemento y adhesivos",        ["Bolsa 25kg", "Bolsa 50kg", "Balde 20kg"]],
+    ["Materiales de Construcción", "todas", "Hierro y acero",             ["Barra 6m", "Malla 6x2.4m", "Kg", "Ton"]],
+    ["Materiales de Construcción", "todas", "Caños y tuberías",           ["Metro", "Barra 6m", "Unidad"]],
+    ["Materiales de Construcción", "todas", "Cables y electricidad",      ["Metro", "Rollo 100m", "Rollo 50m"]],
+    ["Materiales de Construcción", "todas", "Pintura y revestimientos",   ["Lata 4L", "Lata 20L", "Balde 20kg"]],
+    // MATERIALES DE OFICINA (finca)
+    ["Materiales de Oficina", "finca", "Papelería y útiles",    ["Resma 500h", "Caja 12u", "Unidad"]],
+    ["Materiales de Oficina", "finca", "Insumos informáticos",  ["Unidad", "Caja"]],
+    // MATERIALES DE LIMPIEZA (finca)
+    ["Materiales de Limpieza", "finca", "Productos de limpieza",  ["Bidón 5L", "Bidón 20L", "Bolsa 5kg"]],
+    ["Materiales de Limpieza", "finca", "Descartables e higiene", ["Caja 100u", "Pack 50u", "Rollo"]],
+    // SEGURIDAD E HIGIENE (finca)
+    ["Seguridad e Higiene", "finca", "EPP (casco, guantes, etc.)", ["Unidad", "Par", "Caja 12u"]],
+    ["Seguridad e Higiene", "finca", "Botiquín y primeros auxilios", ["Unidad", "Kit", "Caja"]],
+  ];
+
+  for (const [catNombre, catTipo, subNombre, presentaciones] of presData) {
+    const catId = `cat_${catTipo}_${slugify(catNombre)}`;
+    const subId = `sub_${catId}_${slugify(subNombre)}`;
+    for (const presNombre of presentaciones) {
+      const presId = `pres_${subId}_${slugify(presNombre)}`;
+      await prisma.presentacion.upsert({
+        where: { id: presId },
+        update: {},
+        create: { id: presId, nombre: presNombre, subCategoriaId: subId, activo: true },
+      });
+    }
+  }
+
+  console.log("✅ Presentaciones creadas");
+
   // ── USUARIOS DEMO ─────────────────────────────────────────────────
 
   const passwordHash = await bcrypt.hash("compras2024", 10);

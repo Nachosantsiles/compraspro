@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { SelectField } from "@/components/ui/SelectField";
 import { crearCategoria, crearSubCategoria } from "@/lib/actions/categorias";
 import { crearUnidad } from "@/lib/actions/unidades";
+import { crearPresentacion } from "@/lib/actions/presentaciones";
 
 export interface ItemPedidoRow {
   id: string;
@@ -17,9 +18,15 @@ export interface ItemPedidoRow {
   itemPedidoId?: string;
 }
 
+interface Presentacion {
+  id: string;
+  nombre: string;
+}
+
 interface SubCat {
   id: string;
   nombre: string;
+  presentaciones: Presentacion[];
 }
 
 export interface CatData {
@@ -41,6 +48,7 @@ interface PedidoItemsTableProps {
 const NEW_CAT_VALUE  = "__nueva_categoria__";
 const NEW_SUB_VALUE  = "__nueva_subcategoria__";
 const NEW_UNID_VALUE = "__nueva_unidad__";
+const NEW_PRES_VALUE = "__nueva_presentacion__";
 
 type InlineState = Record<string, { open: boolean; nombre: string; loading: boolean }>;
 
@@ -70,6 +78,7 @@ export function PedidoItemsTable({
   const [newCatState,  setNewCatState]  = useState<InlineState>({});
   const [newSubState,  setNewSubState]  = useState<InlineState>({});
   const [newUnidState, setNewUnidState] = useState<InlineState>({});
+  const [newPresState, setNewPresState] = useState<InlineState>({});
 
   // ── Filtro categorías por empresa ──────────────────────────────────
   const catsFiltradas = categorias.filter((c) => {
@@ -148,7 +157,7 @@ export function PedidoItemsTable({
     setCategorias((prev) =>
       prev.map((c) =>
         c.id === categoriaId
-          ? { ...c, subcategorias: [...c.subcategorias, { id: nuevaSub.id, nombre: nuevaSub.nombre }] }
+          ? { ...c, subcategorias: [...c.subcategorias, { id: nuevaSub.id, nombre: nuevaSub.nombre, presentaciones: [] }] }
           : c
       )
     );
@@ -191,6 +200,46 @@ export function PedidoItemsTable({
     setNewUnidState((s) => ({ ...s, [rowId]: { open: false, nombre: "", loading: false } }));
   }
 
+  // ── PRESENTACIÓN ───────────────────────────────────────────────────
+  function handlePresChange(rowId: string, value: string) {
+    if (value === NEW_PRES_VALUE) {
+      setNewPresState((s) => ({ ...s, [rowId]: { open: true, nombre: "", loading: false } }));
+      return;
+    }
+    update(rowId, "presentacion", value);
+  }
+
+  async function handleSaveNewPres(rowId: string, subCategoriaId: string) {
+    const state = newPresState[rowId];
+    if (!state?.nombre.trim()) return;
+    setNewPresState((s) => ({ ...s, [rowId]: { ...s[rowId], loading: true } }));
+
+    const res = await crearPresentacion(state.nombre.trim(), subCategoriaId);
+    if (res.error) {
+      alert(res.error);
+      setNewPresState((s) => ({ ...s, [rowId]: { ...s[rowId], loading: false } }));
+      return;
+    }
+    const nuevaPres = res.presentacion!;
+    // Agrega la nueva presentación al listado local de la subcategoría
+    setCategorias((prev) =>
+      prev.map((c) => ({
+        ...c,
+        subcategorias: c.subcategorias.map((s) =>
+          s.id === subCategoriaId
+            ? { ...s, presentaciones: [...s.presentaciones, { id: nuevaPres.id, nombre: nuevaPres.nombre }] }
+            : s
+        ),
+      }))
+    );
+    update(rowId, "presentacion", nuevaPres.nombre);
+    setNewPresState((s) => ({ ...s, [rowId]: { open: false, nombre: "", loading: false } }));
+  }
+
+  function cancelNewPres(rowId: string) {
+    setNewPresState((s) => ({ ...s, [rowId]: { open: false, nombre: "", loading: false } }));
+  }
+
   // ── Render ─────────────────────────────────────────────────────────
   const defaultUnidad = unidades[0] ?? "unid";
 
@@ -222,9 +271,12 @@ export function PedidoItemsTable({
       {items.map((row, i) => {
         const catSel       = categorias.find((c) => c.id === row.categoriaId);
         const subsDisp     = catSel?.subcategorias ?? [];
+        const subSel       = subsDisp.find((s) => s.id === row.subCategoriaId);
+        const presDisp     = subSel?.presentaciones ?? [];
         const newCat       = newCatState[row.id];
         const newSub       = newSubState[row.id];
         const newUnid      = newUnidState[row.id];
+        const newPres      = newPresState[row.id];
 
         return (
           <div key={row.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
@@ -309,14 +361,40 @@ export function PedidoItemsTable({
             <div className="grid grid-cols-6 gap-3">
               {/* Presentación */}
               <div className="col-span-3">
-                <Input
-                  label="Presentación"
-                  value={row.presentacion}
-                  onChange={(e) => update(row.id, "presentacion", e.target.value)}
-                  placeholder="Ej: Bidón 20L, Bolsa 50kg..."
-                  readOnly={readOnly}
-                  required
-                />
+                {newPres?.open ? (
+                  <InlineInput
+                    label="Nueva presentación"
+                    placeholder="Ej: Bidón 20L, Bolsa 50kg..."
+                    value={newPres.nombre}
+                    loading={newPres.loading}
+                    onChange={(v) => setNewPresState((s) => ({ ...s, [row.id]: { ...s[row.id], nombre: v } }))}
+                    onSave={() => handleSaveNewPres(row.id, row.subCategoriaId)}
+                    onCancel={() => cancelNewPres(row.id)}
+                  />
+                ) : presDisp.length === 0 && !readOnly ? (
+                  // Sin presentaciones predefinidas → texto libre
+                  <Input
+                    label="Presentación"
+                    value={row.presentacion}
+                    onChange={(e) => update(row.id, "presentacion", e.target.value)}
+                    placeholder={!row.subCategoriaId ? "Primero elegí subcategoría" : "Ej: Bidón 20L, Bolsa 50kg..."}
+                    readOnly={!row.subCategoriaId}
+                    required
+                  />
+                ) : (
+                  <SelectField
+                    label="Presentación"
+                    value={row.presentacion}
+                    onChange={(e) => handlePresChange(row.id, e.target.value)}
+                    disabled={readOnly || !row.subCategoriaId}
+                    required
+                    options={[
+                      ...presDisp.map((p) => ({ value: p.nombre, label: p.nombre })),
+                      ...(readOnly || !row.subCategoriaId ? [] : [{ value: NEW_PRES_VALUE, label: "＋ Agregar nueva presentación..." }]),
+                    ]}
+                    placeholder={!row.subCategoriaId ? "Primero elegí subcategoría" : "Seleccioná presentación..."}
+                  />
+                )}
               </div>
 
               {/* Unidad de medida */}

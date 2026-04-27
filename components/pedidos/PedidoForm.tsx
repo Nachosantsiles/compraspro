@@ -250,13 +250,16 @@ export function PedidoForm({ empresas, fincas, ccFincas, categorias, unidades, d
         <h3 className="text-sm font-semibold text-gray-900">Datos del pedido</h3>
 
         <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Solicitante"
-            value={solicitante}
-            onChange={(e) => setSolicitante(e.target.value)}
-            placeholder="Apellido, Nombre"
-            required
-          />
+          <div>
+            <p className="text-xs font-medium text-gray-700 mb-1">Solicitante</p>
+            <div className="flex items-center gap-2 h-9 px-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
+              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="font-medium">{solicitante}</span>
+              <span className="ml-auto text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">Usuario activo</span>
+            </div>
+          </div>
           <SelectField
             label="Urgencia"
             value={urgencia}

@@ -130,9 +130,19 @@ model SubCategoria {
   categoriaId String
   activo      Boolean @default(true)
 
-  categoria   Categoria    @relation(fields: [categoriaId], references: [id])
-  itemsPedido ItemPedido[]
-  itemsOPI    ItemOPI[]
+  categoria      Categoria      @relation(fields: [categoriaId], references: [id])
+  itemsPedido    ItemPedido[]
+  itemsOPI       ItemOPI[]
+  presentaciones Presentacion[]
+}
+
+model Presentacion {
+  id             String  @id @default(cuid())
+  nombre         String
+  subCategoriaId String
+  activo         Boolean @default(true)
+
+  subCategoria SubCategoria @relation(fields: [subCategoriaId], references: [id])
 }
 
 // ─── PROVEEDORES ─────────────────────────────────────────────────────

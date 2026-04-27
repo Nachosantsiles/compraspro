@@ -17,6 +17,12 @@ export async function getCategoriasByEmpresaTipo(empresaTipo: string) {
       subcategorias: {
         where: { activo: true },
         orderBy: { nombre: "asc" },
+        include: {
+          presentaciones: {
+            where: { activo: true },
+            orderBy: { nombre: "asc" },
+          },
+        },
       },
     },
     orderBy: { nombre: "asc" },
@@ -31,6 +37,12 @@ export async function getAllCategorias() {
       subcategorias: {
         where: { activo: true },
         orderBy: { nombre: "asc" },
+        include: {
+          presentaciones: {
+            where: { activo: true },
+            orderBy: { nombre: "asc" },
+          },
+        },
       },
     },
     orderBy: [{ tipo: "asc" }, { nombre: "asc" }],
