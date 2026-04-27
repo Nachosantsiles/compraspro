@@ -190,14 +190,16 @@ model Pedido {
 }
 
 model ItemPedido {
-  id             String @id @default(cuid())
-  pedidoId       String
-  categoriaId    String
-  subCategoriaId String
-  presentacion   String
-  unidadMedida   String // kg | g | L | mL | m | m² | mm | unid | tn
-  cantidad       Float
-  orden          Int    @default(0)
+  id                  String @id @default(cuid())
+  pedidoId            String
+  categoriaId         String
+  subCategoriaId      String
+  presentacion        String
+  detalle             String @default("")
+  unidadMedidaDetalle String @default("")
+  unidadMedida        String // kg | g | L | mL | m | m² | mm | unid | tn
+  cantidad            Float
+  orden               Int    @default(0)
 
   pedido       Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   categoria    Categoria    @relation(fields: [categoriaId], references: [id])

@@ -14,6 +14,8 @@ export interface ItemPedidoRow {
   categoriaId: string;
   subCategoriaId: string;
   presentacion: string;
+  detalle: string;
+  unidadMedidaDetalle: string;
   unidadMedida: string;
   cantidad: number;
   itemPedidoId?: string;
@@ -59,6 +61,8 @@ function newRow(defaultUnidad: string): ItemPedidoRow {
     categoriaId: "",
     subCategoriaId: "",
     presentacion: "",
+    detalle: "",
+    unidadMedidaDetalle: "",
     unidadMedida: defaultUnidad || "unid",
     cantidad: 1,
   };
@@ -354,7 +358,29 @@ export function PedidoItemsTable({
               </div>
             </div>
 
-            {/* Fila 2: Presentación → Unidad → Cantidad */}
+            {/* Fila 2: Detalle → Unidad de medida del detalle */}
+            <div className="grid grid-cols-6 gap-3">
+              <div className="col-span-4">
+                <Input
+                  label="Detalle del ítem"
+                  value={row.detalle}
+                  onChange={(e) => update(row.id, "detalle", e.target.value)}
+                  placeholder="Ej: UPN de 8mm de diámetro, Aceite SAE 40, Cable 2.5mm²..."
+                  readOnly={readOnly}
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  label="Unidad medida detalle"
+                  value={row.unidadMedidaDetalle}
+                  onChange={(e) => update(row.id, "unidadMedidaDetalle", e.target.value)}
+                  placeholder="Ej: 6m, 20L, 50kg..."
+                  readOnly={readOnly}
+                />
+              </div>
+            </div>
+
+            {/* Fila 3: Presentación → Unidad → Cantidad */}
             <div className="grid grid-cols-6 gap-3">
               {/* Presentación */}
               <div className="col-span-3">

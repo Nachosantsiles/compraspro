@@ -10,6 +10,8 @@ interface ItemInput {
   cantidad: number;
   unidadMedida: string;
   presentacion: string;
+  detalle: string;
+  unidadMedidaDetalle: string;
   categoriaId: string;
   subCategoriaId: string;
 }
@@ -54,6 +56,8 @@ export async function crearPedido(input: CrearPedidoInput) {
             cantidad: item.cantidad,
             unidadMedida: item.unidadMedida,
             presentacion: item.presentacion,
+            detalle: item.detalle ?? "",
+            unidadMedidaDetalle: item.unidadMedidaDetalle ?? "",
             categoriaId: item.categoriaId,
             subCategoriaId: item.subCategoriaId,
             orden: i,
