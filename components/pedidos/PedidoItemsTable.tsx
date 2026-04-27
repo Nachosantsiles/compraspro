@@ -7,6 +7,7 @@ import { SelectField } from "@/components/ui/SelectField";
 import { crearCategoria, crearSubCategoria } from "@/lib/actions/categorias";
 import { crearUnidad } from "@/lib/actions/unidades";
 import { crearPresentacion } from "@/lib/actions/presentaciones";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 export interface ItemPedidoRow {
   id: string;
@@ -279,7 +280,7 @@ export function PedidoItemsTable({
         const newPres      = newPresState[row.id];
 
         return (
-          <div key={row.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+          <div key={row.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3 overflow-visible">
             {/* Encabezado del ítem */}
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-gray-400">Ítem {i + 1}</span>
@@ -313,16 +314,14 @@ export function PedidoItemsTable({
                     onCancel={() => cancelNewCat(row.id)}
                   />
                 ) : (
-                  <SelectField
+                  <SearchableSelect
                     label="Categoría"
                     value={row.categoriaId}
-                    onChange={(e) => handleCatChange(row.id, e.target.value)}
+                    onChange={(v) => handleCatChange(row.id, v)}
                     disabled={readOnly}
                     required
-                    options={[
-                      ...catsFiltradas.map((c) => ({ value: c.id, label: c.nombre })),
-                      ...(readOnly ? [] : [{ value: NEW_CAT_VALUE, label: "＋ Agregar nueva categoría..." }]),
-                    ]}
+                    options={catsFiltradas.map((c) => ({ value: c.id, label: c.nombre }))}
+                    pinnedOptions={readOnly ? [] : [{ value: NEW_CAT_VALUE, label: "＋ Agregar nueva categoría..." }]}
                     placeholder="Seleccioná categoría..."
                   />
                 )}
@@ -341,16 +340,14 @@ export function PedidoItemsTable({
                     onCancel={() => cancelNewSub(row.id)}
                   />
                 ) : (
-                  <SelectField
+                  <SearchableSelect
                     label="Subcategoría"
                     value={row.subCategoriaId}
-                    onChange={(e) => handleSubChange(row.id, e.target.value)}
+                    onChange={(v) => handleSubChange(row.id, v)}
                     disabled={readOnly || !row.categoriaId}
                     required
-                    options={[
-                      ...subsDisp.map((s) => ({ value: s.id, label: s.nombre })),
-                      ...(readOnly || !row.categoriaId ? [] : [{ value: NEW_SUB_VALUE, label: "＋ Agregar nueva subcategoría..." }]),
-                    ]}
+                    options={subsDisp.map((s) => ({ value: s.id, label: s.nombre }))}
+                    pinnedOptions={readOnly || !row.categoriaId ? [] : [{ value: NEW_SUB_VALUE, label: "＋ Agregar nueva subcategoría..." }]}
                     placeholder={!row.categoriaId ? "Primero elegí categoría" : "Seleccioná subcategoría..."}
                   />
                 )}
@@ -382,16 +379,14 @@ export function PedidoItemsTable({
                     required
                   />
                 ) : (
-                  <SelectField
+                  <SearchableSelect
                     label="Presentación"
                     value={row.presentacion}
-                    onChange={(e) => handlePresChange(row.id, e.target.value)}
+                    onChange={(v) => handlePresChange(row.id, v)}
                     disabled={readOnly || !row.subCategoriaId}
                     required
-                    options={[
-                      ...presDisp.map((p) => ({ value: p.nombre, label: p.nombre })),
-                      ...(readOnly || !row.subCategoriaId ? [] : [{ value: NEW_PRES_VALUE, label: "＋ Agregar nueva presentación..." }]),
-                    ]}
+                    options={presDisp.map((p) => ({ value: p.nombre, label: p.nombre }))}
+                    pinnedOptions={readOnly || !row.subCategoriaId ? [] : [{ value: NEW_PRES_VALUE, label: "＋ Agregar nueva presentación..." }]}
                     placeholder={!row.subCategoriaId ? "Primero elegí subcategoría" : "Seleccioná presentación..."}
                   />
                 )}
