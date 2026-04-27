@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 export interface SearchableOption {
@@ -20,6 +21,13 @@ interface SearchableSelectProps {
   pinnedOptions?: SearchableOption[];
 }
 
+interface DropdownPos {
+  top: number;
+  left: number;
+  width: number;
+  openUp: boolean;
+}
+
 export function SearchableSelect({
   label,
   value,
@@ -32,7 +40,10 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<DropdownPos>({ top: 0, left: 0, width: 0, openUp: false });
+  const [mounted, setMounted] = useState(false);
+
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const [highlighted, setHighlighted] = useState(0);
@@ -46,15 +57,67 @@ export function SearchableSelect({
 
   const allVisible = [...filtered, ...pinnedOptions];
 
+  // Montar portal solo en cliente
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Calcular posición al abrir
+  function calcPos() {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const dropdownHeight = 260; // max estimado
+    const spaceBelow = viewportHeight - rect.bottom;
+    const openUp = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+
+    setPos({
+      top: openUp ? rect.top + window.scrollY - dropdownHeight - 4 : rect.bottom + window.scrollY + 4,
+      left: rect.left + window.scrollX,
+      width: rect.width,
+      openUp,
+    });
+  }
+
+  // Recalcular posición al hacer scroll/resize mientras está abierto
+  useEffect(() => {
+    if (!open) return;
+    function update() {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const dropdownHeight = 260;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const openUp = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+      setPos({
+        top: openUp ? rect.top + window.scrollY - dropdownHeight - 4 : rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+        openUp,
+      });
+    }
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open]);
+
   // Cierra al hacer click fuera
   useEffect(() => {
+    if (!open) return;
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        listRef.current && !listRef.current.closest("[data-searchable-dropdown]")?.contains(target)
+      ) {
         setOpen(false);
         setQuery("");
       }
     }
-    if (open) document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
@@ -65,6 +128,7 @@ export function SearchableSelect({
 
   function handleOpen() {
     if (disabled) return;
+    calcPos();
     setOpen(true);
     setQuery("");
     setTimeout(() => inputRef.current?.focus(), 0);
@@ -99,6 +163,7 @@ export function SearchableSelect({
         setQuery("");
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [open, allVisible, highlighted]
   );
 
@@ -108,8 +173,75 @@ export function SearchableSelect({
     item?.scrollIntoView({ block: "nearest" });
   }, [highlighted]);
 
+  const dropdown = (
+    <div
+      data-searchable-dropdown
+      style={{
+        position: "absolute",
+        top: pos.top,
+        left: pos.left,
+        width: pos.width,
+        zIndex: 9999,
+      }}
+      className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden"
+    >
+      {/* Buscador */}
+      <div className="p-2 border-b border-gray-100">
+        <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded-lg">
+          <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Buscar..."
+            className="flex-1 text-xs bg-transparent outline-none text-gray-700 placeholder-gray-400"
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery("")} className="text-gray-400 hover:text-gray-600 text-sm leading-none">×</button>
+          )}
+        </div>
+      </div>
+
+      {/* Lista */}
+      <ul ref={listRef} className="max-h-48 overflow-y-auto py-1">
+        {allVisible.length === 0 ? (
+          <li className="px-3 py-2 text-xs text-gray-400 text-center">Sin resultados</li>
+        ) : (
+          allVisible.map((opt, idx) => {
+            const isPinned = pinnedOptions.some((p) => p.value === opt.value);
+            const isSelected = opt.value === value;
+            return (
+              <li key={opt.value}>
+                {isPinned && idx > 0 && <div className="border-t border-gray-100 mx-2 my-1" />}
+                <button
+                  type="button"
+                  onClick={() => handleSelect(opt.value)}
+                  className={cn(
+                    "w-full text-left px-3 py-2 text-sm transition-colors",
+                    idx === highlighted ? "bg-gray-100" : "hover:bg-gray-50",
+                    isSelected && "font-semibold text-gray-900",
+                    isPinned && "text-blue-600 text-xs font-medium"
+                  )}
+                >
+                  {isSelected && !isPinned && (
+                    <span className="mr-1.5 text-gray-400">✓</span>
+                  )}
+                  {opt.label}
+                </button>
+              </li>
+            );
+          })
+        )}
+      </ul>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-1 relative" ref={containerRef}>
+    <div className="flex flex-col gap-1">
       {label && (
         <label className="text-xs font-medium text-gray-700">
           {label}
@@ -119,6 +251,7 @@ export function SearchableSelect({
 
       {/* Trigger */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={handleOpen}
         onKeyDown={handleKeyDown}
@@ -140,63 +273,8 @@ export function SearchableSelect({
         </svg>
       </button>
 
-      {/* Dropdown */}
-      {open && (
-        <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-          {/* Buscador */}
-          <div className="p-2 border-b border-gray-100">
-            <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded-lg">
-              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Buscar..."
-                className="flex-1 text-xs bg-transparent outline-none text-gray-700 placeholder-gray-400"
-              />
-              {query && (
-                <button type="button" onClick={() => setQuery("")} className="text-gray-400 hover:text-gray-600 text-sm leading-none">×</button>
-              )}
-            </div>
-          </div>
-
-          {/* Lista */}
-          <ul ref={listRef} className="max-h-48 overflow-y-auto py-1">
-            {allVisible.length === 0 ? (
-              <li className="px-3 py-2 text-xs text-gray-400 text-center">Sin resultados</li>
-            ) : (
-              allVisible.map((opt, idx) => {
-                const isPinned = pinnedOptions.some((p) => p.value === opt.value);
-                const isSelected = opt.value === value;
-                return (
-                  <li key={opt.value}>
-                    {isPinned && idx > 0 && <div className="border-t border-gray-100 mx-2 my-1" />}
-                    <button
-                      type="button"
-                      onClick={() => handleSelect(opt.value)}
-                      className={cn(
-                        "w-full text-left px-3 py-2 text-sm transition-colors",
-                        idx === highlighted ? "bg-gray-100" : "hover:bg-gray-50",
-                        isSelected && "font-semibold text-gray-900",
-                        isPinned && "text-blue-600 text-xs font-medium"
-                      )}
-                    >
-                      {isSelected && !isPinned && (
-                        <span className="mr-1.5 text-gray-400">✓</span>
-                      )}
-                      {opt.label}
-                    </button>
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        </div>
-      )}
+      {/* Portal dropdown */}
+      {open && mounted && createPortal(dropdown, document.body)}
     </div>
   );
 }
