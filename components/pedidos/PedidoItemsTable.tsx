@@ -380,8 +380,22 @@ export function PedidoItemsTable({
               </div>
             </div>
 
-            {/* Fila 3: Presentación → Unidad → Cantidad */}
+            {/* Fila 3: Cantidad → Presentación → Unidad */}
             <div className="grid grid-cols-6 gap-3">
+              {/* Cantidad */}
+              <div className="col-span-1">
+                <Input
+                  label="Cantidad"
+                  type="number"
+                  min={0.01}
+                  step="any"
+                  value={row.cantidad}
+                  onChange={(e) => update(row.id, "cantidad", parseFloat(e.target.value) || 0)}
+                  readOnly={readOnly}
+                  required
+                />
+              </div>
+
               {/* Presentación */}
               <div className="col-span-3">
                 {newPres?.open ? (
@@ -442,20 +456,6 @@ export function PedidoItemsTable({
                     ]}
                   />
                 )}
-              </div>
-
-              {/* Cantidad */}
-              <div className="col-span-1">
-                <Input
-                  label="Cantidad"
-                  type="number"
-                  min={0.01}
-                  step="any"
-                  value={row.cantidad}
-                  onChange={(e) => update(row.id, "cantidad", parseFloat(e.target.value) || 0)}
-                  readOnly={readOnly}
-                  required
-                />
               </div>
             </div>
           </div>
