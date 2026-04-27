@@ -18,6 +18,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard/stock": "Stock",
   "/dashboard/proveedores": "Proveedores",
   "/dashboard/usuarios": "Usuarios",
+  "/dashboard/presentaciones": "Tipos de Presentación",
 };
 
 interface HeaderProps {

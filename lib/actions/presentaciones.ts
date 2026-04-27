@@ -34,3 +34,21 @@ export async function crearPresentacion(nombre: string, subCategoriaId: string) 
 
   return { success: true, presentacion };
 }
+
+export async function togglePresentacion(id: string) {
+  const session = await getServerSession(authOptions);
+  if (!session) return { error: "No autenticado" };
+
+  const user = session.user as any;
+  if (user.rol !== "admin") return { error: "Sin permisos" };
+
+  const pres = await prisma.presentacion.findUnique({ where: { id } });
+  if (!pres) return { error: "No encontrada" };
+
+  await prisma.presentacion.update({
+    where: { id },
+    data: { activo: !pres.activo },
+  });
+
+  return { success: true, activo: !pres.activo };
+}

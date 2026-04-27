@@ -114,6 +114,12 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: "Users",
         roles: ["admin"],
       },
+      {
+        label: "Presentaciones",
+        href: "/dashboard/presentaciones",
+        icon: "Tag",
+        roles: ["admin"],
+      },
     ],
   },
 ];
