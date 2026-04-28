@@ -14,9 +14,8 @@ import type { RolEnum } from "@/types";
 const FILTROS = [
   { label: "Todos", value: "" },
   { label: "Pend. Aut. Téc.", value: "pendiente_autec" },
-  { label: "Aprobados", value: "aprobado_autec" },
+  { label: "En cotización", value: "pendiente_cotizacion" },
   { label: "Rechazados", value: "rechazado_autec" },
-  { label: "Con OPI", value: "pendiente_cotizacion" },
   { label: "Vencidos", value: "vencido_autec" },
 ];
 

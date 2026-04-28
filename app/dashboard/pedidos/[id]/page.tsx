@@ -21,7 +21,6 @@ export default async function PedidoDetallePage({ params }: { params: { id: stri
   if (!pedido) notFound();
 
   const canAutec = ["admin", "tecnico"].includes(rol);
-  const canCrearOPI = ["admin", "comprador"].includes(rol) && pedido.estado === "aprobado_autec" && !pedido.opi;
 
   const ccLabel = pedido.centroCosto
     ? `${pedido.centroCosto.departamento.codigo} › ${pedido.centroCosto.codigo} – ${pedido.centroCosto.descripcion}`
@@ -51,24 +50,11 @@ export default async function PedidoDetallePage({ params }: { params: { id: stri
         </div>
       </div>
 
-      {/* CTA: crear OPI */}
-      {canCrearOPI && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-blue-900">Pedido aprobado técnicamente</p>
-            <p className="text-xs text-blue-700 mt-0.5">Ya podés generar la OPI para iniciar el proceso de cotización.</p>
-          </div>
-          <Link href={`/dashboard/opis/nuevo?pedidoId=${pedido.id}`}>
-            <Button size="sm">Crear OPI</Button>
-          </Link>
-        </div>
-      )}
-
-      {/* OPI vinculada */}
+      {/* OPI vinculada — generada automáticamente al aprobar autec */}
       {pedido.opi && (
         <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-teal-900">OPI generada</p>
+            <p className="text-sm font-semibold text-teal-900">OPI generada automáticamente</p>
             <p className="text-xs text-teal-700 mt-0.5">
               <span className="font-mono">{pedido.opi.numero}</span> · <StatusBadge estado={pedido.opi.estado} />
             </p>

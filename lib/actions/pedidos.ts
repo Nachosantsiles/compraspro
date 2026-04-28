@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { nextPedidoNumero } from "@/lib/numbers";
+import { nextPedidoNumero, nextOPINumero } from "@/lib/numbers";
 
 interface ItemInput {
   cantidad: number;
@@ -86,26 +86,62 @@ export async function aprobarAutTecnica(pedidoId: string, comentario?: string) {
   if (!["admin", "tecnico"].includes(user.rol)) return { error: "Sin permisos" };
 
   try {
-    await prisma.$transaction([
-      prisma.autorizacionTec.update({
+    // Traer pedido con todos los datos necesarios para generar la OPI
+    const pedido = await prisma.pedido.findUnique({
+      where: { id: pedidoId },
+      include: { items: { orderBy: { orden: "asc" } } },
+    });
+    if (!pedido) return { error: "Pedido no encontrado" };
+
+    const opiNumero = await nextOPINumero();
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Aprobar AutTec
+      await tx.autorizacionTec.update({
         where: { pedidoId },
+        data: { estado: "aprobada", aprobadorId: user.id, comentario: comentario ?? null, fecha: new Date() },
+      });
+
+      // 2. Crear OPI automáticamente con todos los ítems del pedido
+      await tx.oPI.create({
         data: {
-          estado: "aprobada",
-          aprobadorId: user.id,
-          comentario: comentario ?? null,
-          fecha: new Date(),
+          numero: opiNumero,
+          pedidoId,
+          empresaId: pedido.empresaId,
+          fincaId: pedido.fincaId ?? null,
+          ccId: pedido.ccId ?? null,
+          ccFincaId: pedido.ccFincaId ?? null,
+          solicitante: pedido.solicitante,
+          descripcion: pedido.descripcion,
+          urgencia: pedido.urgencia,
+          estado: "pendiente_cotizacion",
+          creadorId: user.id,
+          items: {
+            create: pedido.items.map((item, i) => ({
+              cantidad: item.cantidad,
+              unidadMedida: item.unidadMedida,
+              presentacion: item.presentacion,
+              categoriaId: item.categoriaId,
+              subCategoriaId: item.subCategoriaId,
+              itemPedidoId: item.id,
+              orden: i,
+            })),
+          },
         },
-      }),
-      prisma.pedido.update({
+      });
+
+      // 3. Avanzar pedido directo a pendiente_cotizacion
+      await tx.pedido.update({
         where: { id: pedidoId },
-        data: { estado: "aprobado_autec" },
-      }),
-    ]);
+        data: { estado: "pendiente_cotizacion" },
+      });
+    });
 
     revalidatePath(`/dashboard/pedidos/${pedidoId}`);
     revalidatePath("/dashboard/pedidos");
+    revalidatePath("/dashboard/opis");
     revalidatePath("/dashboard");
-    return { success: true };
+    return { success: true, opiNumero };
   } catch (e) {
     console.error(e);
     return { error: "Error al aprobar" };
@@ -145,16 +181,29 @@ export async function aprobarParcialAutTecnica(
     const autTec = await prisma.autorizacionTec.findUnique({ where: { pedidoId } });
     if (!autTec) return { error: "Autorización técnica no encontrada" };
 
+    // Traer los ítems del pedido para generar la OPI
+    const pedido = await prisma.pedido.findUnique({
+      where: { id: pedidoId },
+      include: { items: { orderBy: { orden: "asc" } } },
+    });
+    if (!pedido) return { error: "Pedido no encontrado" };
+
+    const opiNumero = await nextOPINumero();
+
+    // Mapa de decisiones para acceso rápido
+    const decisionMap = new Map(decisions.map((d) => [d.itemPedidoId, d]));
+
+    // Ítems aprobados (ok o modificado con nueva cantidad)
+    const itemsAprobados = pedido.items.filter((item) => {
+      const dec = decisionMap.get(item.id);
+      return !dec || dec.estado !== "denegado";
+    });
+
     await prisma.$transaction(async (tx) => {
       // 1. Actualizar AutorizacionTec
       await tx.autorizacionTec.update({
         where: { pedidoId },
-        data: {
-          estado: "aprobada_parcial",
-          aprobadorId: user.id,
-          comentario: comentario ?? null,
-          fecha: new Date(),
-        },
+        data: { estado: "aprobada_parcial", aprobadorId: user.id, comentario: comentario ?? null, fecha: new Date() },
       });
 
       // 2. Guardar decisiones por ítem
@@ -162,26 +211,53 @@ export async function aprobarParcialAutTecnica(
         await tx.itemAutTec.upsert({
           where: { autTecId_itemPedidoId: { autTecId: autTec.id, itemPedidoId: d.itemPedidoId } },
           update: { estado: d.estado, nuevaCantidad: d.nuevaCantidad ?? null },
-          create: {
-            autTecId: autTec.id,
-            itemPedidoId: d.itemPedidoId,
-            estado: d.estado,
-            nuevaCantidad: d.nuevaCantidad ?? null,
-          },
+          create: { autTecId: autTec.id, itemPedidoId: d.itemPedidoId, estado: d.estado, nuevaCantidad: d.nuevaCantidad ?? null },
         });
       }
 
-      // 3. Avanzar estado del pedido (igual que aprobación total — el comprador verá las restricciones en la OPI)
+      // 3. Crear OPI automáticamente solo con ítems aprobados/modificados
+      await tx.oPI.create({
+        data: {
+          numero: opiNumero,
+          pedidoId,
+          empresaId: pedido.empresaId,
+          fincaId: pedido.fincaId ?? null,
+          ccId: pedido.ccId ?? null,
+          ccFincaId: pedido.ccFincaId ?? null,
+          solicitante: pedido.solicitante,
+          descripcion: pedido.descripcion,
+          urgencia: pedido.urgencia,
+          estado: "pendiente_cotizacion",
+          creadorId: user.id,
+          items: {
+            create: itemsAprobados.map((item, i) => {
+              const dec = decisionMap.get(item.id);
+              return {
+                cantidad: dec?.estado === "modificado" ? (dec.nuevaCantidad ?? item.cantidad) : item.cantidad,
+                unidadMedida: item.unidadMedida,
+                presentacion: item.presentacion,
+                categoriaId: item.categoriaId,
+                subCategoriaId: item.subCategoriaId,
+                itemPedidoId: item.id,
+                orden: i,
+              };
+            }),
+          },
+        },
+      });
+
+      // 4. Avanzar pedido directo a pendiente_cotizacion
       await tx.pedido.update({
         where: { id: pedidoId },
-        data: { estado: "aprobado_autec" },
+        data: { estado: "pendiente_cotizacion" },
       });
     });
 
     revalidatePath(`/dashboard/pedidos/${pedidoId}`);
     revalidatePath("/dashboard/pedidos");
+    revalidatePath("/dashboard/opis");
     revalidatePath("/dashboard");
-    return { success: true };
+    return { success: true, opiNumero };
   } catch (e) {
     console.error(e);
     return { error: "Error al guardar la aprobación parcial" };
