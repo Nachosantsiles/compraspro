@@ -82,11 +82,16 @@ export default async function PedidosPage({ searchParams }: PageProps) {
           <h2 className="text-xl font-bold text-gray-900">Pedidos</h2>
           <p className="text-sm text-gray-500">{pedidos.length} registros</p>
         </div>
-        {canCreate && (
-          <Link href="/dashboard/pedidos/nuevo">
-            <Button>+ Nuevo pedido</Button>
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/opis">
+            <Button variant="outline">Ver OPIs</Button>
           </Link>
-        )}
+          {canCreate && (
+            <Link href="/dashboard/pedidos/nuevo">
+              <Button>+ Nuevo pedido</Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filtros */}
