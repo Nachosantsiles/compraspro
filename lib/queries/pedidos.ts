@@ -24,7 +24,10 @@ export async function getPedidos(filters?: {
     },
     include: {
       empresa: true,
+      centroCosto: { include: { departamento: true } },
+      centroCostoFinca: true,
       creador: { select: { id: true, nombre: true, apellido: true, rol: true } },
+      responsable: { select: { id: true, nombre: true, apellido: true } },
       autTecnica: true,
       opi: { select: { id: true, numero: true, estado: true } },
       _count: { select: { items: true } },
@@ -42,6 +45,7 @@ export async function getPedidoById(id: string) {
       centroCosto: { include: { departamento: true } },
       centroCostoFinca: true,
       creador: { select: { id: true, nombre: true, apellido: true, rol: true } },
+      responsable: { select: { id: true, nombre: true, apellido: true } },
       items: {
         include: {
           categoria: true,

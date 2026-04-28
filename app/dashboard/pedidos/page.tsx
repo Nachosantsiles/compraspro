@@ -94,14 +94,14 @@ export default async function PedidosPage({ searchParams }: PageProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Número</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">N° Pedido</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Empresa</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Solicitante</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Descripción</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Departamento</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Urgencia</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Ítems</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Responsable</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -131,7 +131,11 @@ export default async function PedidosPage({ searchParams }: PageProps) {
                     </td>
                     <td className="px-6 py-3 text-gray-700">{p.solicitante}</td>
                     <td className="px-6 py-3">
-                      <p className="text-gray-700 truncate max-w-[220px]">{p.descripcion}</p>
+                      {p.centroCosto
+                        ? <span className="text-gray-700 text-xs">{p.centroCosto.departamento.nombre}</span>
+                        : p.centroCostoFinca
+                        ? <span className="text-gray-700 text-xs">{p.centroCostoFinca.tipo}</span>
+                        : <span className="text-gray-400">—</span>}
                     </td>
                     <td className="px-6 py-3">
                       <UrgenciaBadge urgencia={p.urgencia} />
@@ -142,7 +146,11 @@ export default async function PedidosPage({ searchParams }: PageProps) {
                     <td className="px-6 py-3 text-gray-500 text-xs whitespace-nowrap">
                       {formatDate(p.createdAt)}
                     </td>
-                    <td className="px-6 py-3 text-right text-gray-500">{p._count.items}</td>
+                    <td className="px-6 py-3">
+                      {p.responsable
+                        ? <span className="text-gray-800 text-xs">{p.responsable.nombre} {p.responsable.apellido}</span>
+                        : <span className="text-gray-400 text-xs italic">Sin asignar</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -3,7 +3,9 @@ import { authOptions } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getPedidoById } from "@/lib/queries/pedidos";
+import { getCompradores } from "@/lib/queries/usuarios";
 import { AutecPanel } from "@/components/pedidos/AutecPanel";
+import { AsignarResponsable } from "@/components/pedidos/AsignarResponsable";
 import { StatusBadge, UrgenciaBadge } from "@/components/ui/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -17,10 +19,14 @@ export default async function PedidoDetallePage({ params }: { params: { id: stri
   const user = session.user as any;
   const rol = user.rol as RolEnum;
 
-  const pedido = await getPedidoById(params.id);
+  const [pedido, compradores] = await Promise.all([
+    getPedidoById(params.id),
+    getCompradores(),
+  ]);
   if (!pedido) notFound();
 
   const canAutec = ["admin", "tecnico"].includes(rol);
+  const isAdmin = rol === "admin";
 
   const ccLabel = pedido.centroCosto
     ? `${pedido.centroCosto.departamento.codigo} › ${pedido.centroCosto.codigo} – ${pedido.centroCosto.descripcion}`
@@ -106,6 +112,22 @@ export default async function PedidoDetallePage({ params }: { params: { id: stri
                 <p className="text-gray-700">
                   {pedido.creador.nombre} {pedido.creador.apellido}
                 </p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500 mb-1">Responsable de compras</p>
+                {isAdmin ? (
+                  <AsignarResponsable
+                    pedidoId={pedido.id}
+                    responsableActual={pedido.responsable ?? null}
+                    compradores={compradores}
+                  />
+                ) : (
+                  <p className="text-gray-800 text-sm">
+                    {pedido.responsable
+                      ? `${pedido.responsable.nombre} ${pedido.responsable.apellido}`
+                      : <span className="text-gray-400 italic text-xs">Sin asignar</span>}
+                  </p>
+                )}
               </div>
             </div>
             <div>

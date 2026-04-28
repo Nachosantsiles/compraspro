@@ -299,3 +299,25 @@ export async function rechazarAutTecnica(pedidoId: string, comentario: string) {
     return { error: "Error al rechazar" };
   }
 }
+
+export async function asignarResponsable(pedidoId: string, responsableId: string | null) {
+  const session = await getServerSession(authOptions);
+  if (!session) return { error: "No autenticado" };
+
+  const user = session.user as any;
+  if (user.rol !== "admin") return { error: "Solo el administrador puede asignar responsables" };
+
+  try {
+    await prisma.pedido.update({
+      where: { id: pedidoId },
+      data: { responsableId: responsableId ?? null },
+    });
+
+    revalidatePath(`/dashboard/pedidos/${pedidoId}`);
+    revalidatePath("/dashboard/pedidos");
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { error: "Error al asignar responsable" };
+  }
+}

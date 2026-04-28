@@ -13,3 +13,11 @@ export async function getUsuarios() {
 export async function getEmpresas() {
   return prisma.empresa.findMany({ orderBy: { nombre: "asc" } });
 }
+
+export async function getCompradores() {
+  return prisma.usuario.findMany({
+    where: { rol: { in: ["comprador", "admin"] }, activo: true },
+    select: { id: true, nombre: true, apellido: true, rol: true },
+    orderBy: [{ nombre: "asc" }],
+  });
+}

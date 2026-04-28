@@ -21,7 +21,8 @@ model Usuario {
   updatedAt DateTime @updatedAt
 
   empresa          Empresa?          @relation(fields: [empresaId], references: [id])
-  pedidosCreados   Pedido[]          @relation("PedidoCreador")
+  pedidosCreados      Pedido[]          @relation("PedidoCreador")
+  pedidosResponsable  Pedido[]          @relation("PedidoResponsable")
   autecRealizadas  AutorizacionTec[] @relation("AutecAprobador")
   opisCreadas      OPI[]             @relation("OPICreador")
   cotizaciones     Cotizacion[]      @relation("CotizacionCreador")
@@ -165,25 +166,27 @@ model Proveedor {
 
 // ─── PEDIDOS ─────────────────────────────────────────────────────────
 model Pedido {
-  id          String   @id @default(cuid())
-  numero      String   @unique
-  empresaId   String
-  fincaId     String?
-  ccId        String?
-  ccFincaId   String?
-  solicitante String
-  descripcion String
-  urgencia    String   @default("Normal")   // Normal | Alta | Critica
-  estado      String   @default("pendiente_autec")
-  creadorId   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  numero         String   @unique
+  empresaId      String
+  fincaId        String?
+  ccId           String?
+  ccFincaId      String?
+  solicitante    String
+  descripcion    String
+  urgencia       String   @default("Normal")   // Normal | Alta | Critica
+  estado         String   @default("pendiente_autec")
+  creadorId      String
+  responsableId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   empresa          Empresa           @relation(fields: [empresaId], references: [id])
   finca            Finca?            @relation(fields: [fincaId], references: [id])
   centroCosto      CentroCosto?      @relation(fields: [ccId], references: [id])
   centroCostoFinca CentroCostoFinca? @relation(fields: [ccFincaId], references: [id])
   creador          Usuario           @relation("PedidoCreador", fields: [creadorId], references: [id])
+  responsable      Usuario?          @relation("PedidoResponsable", fields: [responsableId], references: [id])
   items            ItemPedido[]
   autTecnica       AutorizacionTec?
   opi              OPI?
