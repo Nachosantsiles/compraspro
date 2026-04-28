@@ -130,7 +130,7 @@ export default async function PedidosPage({ searchParams }: PageProps) {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Urgencia</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Responsable</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">OPI</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -179,9 +179,18 @@ export default async function PedidosPage({ searchParams }: PageProps) {
                         {formatDate(p.createdAt)}
                       </td>
                       <td className="px-4 py-3">
-                        {p.responsable
-                          ? <span className="text-gray-800 text-xs">{p.responsable.nombre} {p.responsable.apellido}</span>
-                          : <span className="text-gray-400 text-xs italic">Sin asignar</span>}
+                        {p.opi ? (
+                          <Link
+                            href={`/dashboard/opis/${p.opi.id}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-teal-200 bg-teal-50 text-teal-700 text-xs font-mono font-semibold hover:bg-teal-100 transition-colors"
+                          >
+                            {p.opi.numero.split("-").slice(-1)[0].replace(/^0+/, "")
+                              ? `#${p.opi.numero.split("-").slice(-1)[0]}`
+                              : p.opi.numero}
+                          </Link>
+                        ) : (
+                          <span className="text-gray-300 text-xs">—</span>
+                        )}
                       </td>
                     </tr>
                   );
