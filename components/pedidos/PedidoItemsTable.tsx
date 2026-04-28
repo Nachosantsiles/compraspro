@@ -390,7 +390,11 @@ export function PedidoItemsTable({
                   min={0.01}
                   step="any"
                   value={row.cantidad}
-                  onChange={(e) => update(row.id, "cantidad", parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const num = e.target.valueAsNumber;
+                    update(row.id, "cantidad", isNaN(num) ? 0 : num);
+                  }}
+                  onFocus={(e) => e.target.select()}
                   readOnly={readOnly}
                   required
                 />
