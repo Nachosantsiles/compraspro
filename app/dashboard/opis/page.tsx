@@ -112,8 +112,8 @@ export default async function OPIsPage({ searchParams }: PageProps) {
                       <StatusBadge estado={o.estado} />
                     </td>
                     <td className="px-6 py-3 text-right">
-                      <span className={`text-xs font-semibold ${o._count.cotizaciones >= 2 ? "text-green-600" : "text-amber-600"}`}>
-                        {o._count.cotizaciones}/2
+                      <span className="text-xs font-semibold text-gray-600">
+                        {o._count.cotizaciones}
                       </span>
                     </td>
                     <td className="px-6 py-3 text-gray-500 text-xs whitespace-nowrap">

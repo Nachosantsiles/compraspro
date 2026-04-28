@@ -50,8 +50,8 @@ export default async function CotizacionesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`text-xs font-semibold ${opi._count.cotizaciones >= 2 ? "text-green-600" : "text-amber-600"}`}>
-                    {opi._count.cotizaciones}/2 cots.
+                  <span className="text-xs font-semibold text-gray-600">
+                    {opi._count.cotizaciones} cot{opi._count.cotizaciones !== 1 ? "s." : "."}
                   </span>
                   <Link href={`/dashboard/cotizaciones/nueva?opiId=${opi.id}`}>
                     <Button size="sm">+ Cotización</Button>

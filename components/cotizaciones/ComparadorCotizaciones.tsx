@@ -63,7 +63,7 @@ export function ComparadorCotizaciones({
 
   const ganadora = cotizaciones.find((c) => c.seleccionada);
   const enCotizacion = ["pendiente_cotizacion", "cotizacion_completa"].includes(opiEstado);
-  const puedeSeleccionar = canSelect && enCotizacion && cotizaciones.length >= 2;
+  const puedeSeleccionar = canSelect && enCotizacion && cotizaciones.length >= 1;
 
   // Moneda predominante
   const moneda = cotizaciones[0]?.moneda ?? "ARS";
@@ -98,11 +98,6 @@ export function ComparadorCotizaciones({
           <h4 className="text-sm font-semibold text-gray-900">
             Comparador de cotizaciones ({cotizaciones.length})
           </h4>
-          {cotizaciones.length < 2 && (
-            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
-              Faltan {2 - cotizaciones.length} cotización(es) para poder seleccionar
-            </span>
-          )}
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-gray-200">

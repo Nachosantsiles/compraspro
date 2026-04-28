@@ -74,11 +74,8 @@ export async function crearCotizacion(input: CrearCotizacionInput) {
       },
     });
 
-    // Contar cotizaciones ahora
-    const totalCots = await prisma.cotizacion.count({ where: { opiId: input.opiId } });
-
-    // Si hay 2+ cotizaciones y OPI aún está pendiente_cotizacion → avanzar
-    if (totalCots >= 2 && opi.estado === "pendiente_cotizacion") {
+    // Con al menos 1 cotización la OPI queda lista para comparar
+    if (opi.estado === "pendiente_cotizacion") {
       await prisma.oPI.update({
         where: { id: input.opiId },
         data: { estado: "cotizacion_completa" },
@@ -107,7 +104,7 @@ export async function seleccionarGanadora(cotizacionId: string, opiId: string) {
     if (!opi) return { error: "OPI no encontrada" };
 
     const totalCots = await prisma.cotizacion.count({ where: { opiId } });
-    if (totalCots < 2) return { error: "Se requieren mínimo 2 cotizaciones para seleccionar ganadora" };
+    if (totalCots < 1) return { error: "Debe haber al menos una cotización para seleccionar ganadora" };
 
     await prisma.$transaction(async (tx) => {
       // Desmarcar todas
@@ -132,5 +129,44 @@ export async function seleccionarGanadora(cotizacionId: string, opiId: string) {
   } catch (e) {
     console.error(e);
     return { error: "Error al seleccionar la cotización ganadora" };
+  }
+}
+
+export async function marcarCompraDirecta(opiId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session) return { error: "No autenticado" };
+
+  const user = session.user as any;
+  if (!["admin", "comprador"].includes(user.rol)) return { error: "Sin permisos" };
+
+  try {
+    const opi = await prisma.oPI.findUnique({ where: { id: opiId } });
+    if (!opi) return { error: "OPI no encontrada" };
+    if (!["pendiente_cotizacion", "cotizacion_completa"].includes(opi.estado)) {
+      return { error: "La OPI no está en estado de cotización" };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Marcar como compra directa y avanzar a autfin
+      await tx.oPI.update({
+        where: { id: opiId },
+        data: { compraDirecta: true, estado: "pendiente_autfin" },
+      });
+      // Crear AutorizacionFin si no existe
+      const existingAutFin = await tx.autorizacionFin.findUnique({ where: { opiId } });
+      if (!existingAutFin) {
+        await tx.autorizacionFin.create({ data: { opiId, estado: "pendiente" } });
+      } else {
+        await tx.autorizacionFin.update({ where: { opiId }, data: { estado: "pendiente" } });
+      }
+    });
+
+    revalidatePath(`/dashboard/opis/${opiId}`);
+    revalidatePath("/dashboard/autorizaciones");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { error: "Error al marcar como compra directa" };
   }
 }

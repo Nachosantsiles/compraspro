@@ -7,6 +7,7 @@ import { StatusBadge, UrgenciaBadge } from "@/components/ui/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ComparadorCotizaciones } from "@/components/cotizaciones/ComparadorCotizaciones";
+import { CompraDirectaButton } from "@/components/cotizaciones/CompraDirectaButton";
 import { AutFinPanel } from "@/components/autorizaciones/AutFinPanel";
 import { EMPRESA_COLORS, formatDate, formatCurrency } from "@/lib/utils";
 import type { RolEnum } from "@/types";
@@ -53,24 +54,38 @@ export default async function OPIDetallePage({ params }: { params: { id: string 
         </div>
       </div>
 
+      {/* CTA: compra directa badge */}
+      {opi.compraDirecta && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+          <span className="text-blue-700 text-lg">🏷️</span>
+          <div>
+            <p className="text-sm font-semibold text-blue-900">Compra directa</p>
+            <p className="text-xs text-blue-700 mt-0.5">Esta OPI fue marcada como compra directa — no requiere cotizaciones.</p>
+          </div>
+        </div>
+      )}
+
       {/* CTA: cargar cotización */}
-      {canCargarCotiz && (
+      {canCargarCotiz && !opi.compraDirecta && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-amber-900">
               {opi.cotizaciones.length === 0
                 ? "Sin cotizaciones cargadas"
-                : `${opi.cotizaciones.length} cotización(es) — se requieren mínimo 2`}
+                : `${opi.cotizaciones.length} cotización(es) cargadas`}
             </p>
             <p className="text-xs text-amber-700 mt-0.5">
-              {opi.cotizaciones.length >= 2
-                ? "Ya podés seleccionar la cotización ganadora en el comparador."
-                : `Faltan ${2 - opi.cotizaciones.length} cotización(es) más para poder seleccionar ganadora.`}
+              {opi.cotizaciones.length === 0
+                ? "Cargá al menos una cotización o marcá como compra directa."
+                : "Podés agregar más cotizaciones o seleccionar una ganadora en el comparador."}
             </p>
           </div>
-          <Link href={`/dashboard/cotizaciones/nueva?opiId=${opi.id}`}>
-            <Button size="sm">+ Cargar cotización</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <CompraDirectaButton opiId={opi.id} />
+            <Link href={`/dashboard/cotizaciones/nueva?opiId=${opi.id}`}>
+              <Button size="sm">+ Cotización</Button>
+            </Link>
+          </div>
         </div>
       )}
 
@@ -226,7 +241,7 @@ export default async function OPIDetallePage({ params }: { params: { id: string 
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Comparador de cotizaciones</CardTitle>
-              {canCargarCotiz && (
+              {canCargarCotiz && !opi.compraDirecta && (
                 <Link href={`/dashboard/cotizaciones/nueva?opiId=${opi.id}`}>
                   <Button size="sm" variant="outline">+ Agregar cotización</Button>
                 </Link>
