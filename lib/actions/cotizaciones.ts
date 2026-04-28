@@ -20,6 +20,7 @@ interface CrearCotizacionInput {
   condiciones?: string;
   validezDias?: number;
   moneda?: string;
+  tipoCambio?: number;
   observaciones?: string;
   items: ItemCotizInput[];
 }
@@ -60,6 +61,7 @@ export async function crearCotizacion(input: CrearCotizacionInput) {
         condiciones: input.condiciones ?? null,
         validezDias: input.validezDias ?? null,
         moneda: input.moneda ?? "ARS",
+        tipoCambio: input.tipoCambio ?? null,
         total,
         observaciones: input.observaciones ?? null,
         items: {

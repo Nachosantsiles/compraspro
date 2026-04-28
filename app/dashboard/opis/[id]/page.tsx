@@ -263,6 +263,7 @@ export default async function OPIDetallePage({ params }: { params: { id: string 
                 total: c.total,
                 condiciones: c.condiciones,
                 validezDias: c.validezDias,
+                tipoCambio: c.tipoCambio ?? null,
                 proveedor: c.proveedor,
                 items: c.items.map((ci) => ({
                   itemOPIId: ci.itemOPIId,

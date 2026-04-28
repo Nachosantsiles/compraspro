@@ -298,6 +298,7 @@ model Cotizacion {
   validezDias   Int?
   moneda        String   @default("ARS")
   total         Float    @default(0)
+  tipoCambio    Float?
   observaciones String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -30,13 +30,17 @@ interface Proveedor { id: string; nombre: string; cuit?: string | null; }
 
 interface PrecioRow {
   itemOPIId: string;
-  precioUnitario: string; // string para el input
+  precioUnitario: string;
   observaciones: string;
 }
 
 interface CotizacionFormProps {
   opi: OPIParaForm;
   proveedores: Proveedor[];
+}
+
+function formatNum(n: number, decimals = 2) {
+  return n.toLocaleString("es-AR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
 export function CotizacionForm({ opi, proveedores }: CotizacionFormProps) {
@@ -48,6 +52,7 @@ export function CotizacionForm({ opi, proveedores }: CotizacionFormProps) {
   const [condiciones, setCondiciones] = useState("");
   const [validezDias, setValidezDias] = useState("30");
   const [moneda, setMoneda] = useState("ARS");
+  const [tipoCambioStr, setTipoCambioStr] = useState("");
   const [observaciones, setObservaciones] = useState("");
 
   const [precios, setPrecios] = useState<PrecioRow[]>(
@@ -67,6 +72,11 @@ export function CotizacionForm({ opi, proveedores }: CotizacionFormProps) {
 
   const total = items.reduce((sum, r) => sum + r.subtotal, 0);
   const allFilled = precios.every((r) => parseFloat(r.precioUnitario) > 0);
+  const tipoCambio = parseFloat(tipoCambioStr) || 0;
+
+  // Conversión de moneda
+  const totalARS = moneda === "ARS" ? total : (tipoCambio > 0 ? total * tipoCambio : 0);
+  const totalUSD = moneda === "USD" ? total : (tipoCambio > 0 ? total / tipoCambio : 0);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -81,6 +91,7 @@ export function CotizacionForm({ opi, proveedores }: CotizacionFormProps) {
       condiciones: condiciones || undefined,
       validezDias: validezDias ? parseInt(validezDias) : undefined,
       moneda,
+      tipoCambio: tipoCambio > 0 ? tipoCambio : undefined,
       observaciones: observaciones || undefined,
       items: items.map(({ item, row, precio, subtotal }) => ({
         itemOPIId: item.id,
@@ -138,6 +149,48 @@ export function CotizacionForm({ opi, proveedores }: CotizacionFormProps) {
             placeholder="Ej: 30 días, contado, etc."
           />
         </div>
+
+        {/* Tipo de cambio */}
+        <div className="grid grid-cols-2 gap-4 items-end">
+          <div>
+            <Input
+              label="Tipo de cambio (ARS / USD)"
+              type="number"
+              min={0.01}
+              step="any"
+              value={tipoCambioStr}
+              onChange={(e) => setTipoCambioStr(e.target.value)}
+              placeholder="Ej: 1250.00"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              {moneda === "ARS"
+                ? "Ingresá cuántos $ ARS vale 1 USD para ver el equivalente en dólares."
+                : "Ingresá cuántos $ ARS vale 1 USD para ver el equivalente en pesos."}
+            </p>
+          </div>
+          {tipoCambio > 0 && total > 0 && (
+            <div className="pb-6">
+              {moneda === "ARS" ? (
+                <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-center">
+                  <p className="text-xs text-green-600 font-semibold uppercase tracking-wide mb-0.5">Equivalente en USD</p>
+                  <p className="text-xl font-bold text-green-800">
+                    USD {formatNum(totalUSD)}
+                  </p>
+                  <p className="text-xs text-green-600 mt-0.5">@ ${formatNum(tipoCambio, 2)} ARS/USD</p>
+                </div>
+              ) : (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-center">
+                  <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide mb-0.5">Equivalente en ARS</p>
+                  <p className="text-xl font-bold text-blue-800">
+                    $ {formatNum(totalARS, 0)}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-0.5">@ ${formatNum(tipoCambio, 2)} ARS/USD</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <Textarea
           label="Observaciones"
           value={observaciones}
@@ -158,7 +211,9 @@ export function CotizacionForm({ opi, proveedores }: CotizacionFormProps) {
                 <th className="py-2 pr-4 text-left text-xs font-semibold text-gray-500 w-6">#</th>
                 <th className="py-2 pr-4 text-left text-xs font-semibold text-gray-500">Descripción</th>
                 <th className="py-2 pr-4 text-right text-xs font-semibold text-gray-500 w-24">Cant.</th>
-                <th className="py-2 pr-4 text-right text-xs font-semibold text-gray-500 w-36">Precio unit. *</th>
+                <th className="py-2 pr-4 text-right text-xs font-semibold text-gray-500 w-36">
+                  Precio unit. ({moneda}) *
+                </th>
                 <th className="py-2 text-right text-xs font-semibold text-gray-500 w-32">Subtotal</th>
               </tr>
             </thead>
@@ -180,6 +235,7 @@ export function CotizacionForm({ opi, proveedores }: CotizacionFormProps) {
                       step="any"
                       value={row.precioUnitario}
                       onChange={(e) => updatePrecio(item.id, "precioUnitario", e.target.value)}
+                      onFocus={(e) => e.target.select()}
                       placeholder="0.00"
                       className="w-full text-right px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                       required
@@ -194,12 +250,24 @@ export function CotizacionForm({ opi, proveedores }: CotizacionFormProps) {
             <tfoot>
               <tr className="border-t-2 border-gray-200">
                 <td colSpan={4} className="py-3 pr-4 text-right text-sm font-semibold text-gray-700">
-                  Total
+                  Total {moneda}
                 </td>
                 <td className="py-3 text-right text-base font-bold text-gray-900">
                   {total > 0 ? formatCurrency(total, moneda) : "—"}
                 </td>
               </tr>
+              {tipoCambio > 0 && total > 0 && (
+                <tr className="border-t border-gray-100">
+                  <td colSpan={4} className="py-2 pr-4 text-right text-xs text-gray-400">
+                    {moneda === "ARS" ? "≈ Total USD" : "≈ Total ARS"}
+                  </td>
+                  <td className="py-2 text-right text-sm font-semibold text-gray-500">
+                    {moneda === "ARS"
+                      ? `USD ${formatNum(totalUSD)}`
+                      : `$ ${formatNum(totalARS, 0)}`}
+                  </td>
+                </tr>
+              )}
             </tfoot>
           </table>
         </div>

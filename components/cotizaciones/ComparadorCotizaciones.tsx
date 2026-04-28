@@ -33,6 +33,7 @@ interface Cotizacion {
   total: number;
   condiciones: string | null;
   validezDias: number | null;
+  tipoCambio: number | null;
   proveedor: { id: string; nombre: string };
   items: ItemCot[];
 }
@@ -158,6 +159,18 @@ export function ComparadorCotizaciones({
                   </td>
                 ))}
               </tr>
+
+              {/* Tipo de cambio */}
+              {cotizaciones.some((c) => c.tipoCambio) && (
+                <tr className="bg-gray-50">
+                  <td className="px-4 py-2 text-xs text-gray-500 font-medium sticky left-0 bg-gray-50">TC (ARS/USD)</td>
+                  {cotizaciones.map((c) => (
+                    <td key={c.id} className={`px-4 py-2 text-right text-xs text-gray-500 ${c.seleccionada ? "bg-green-50" : ""}`}>
+                      {c.tipoCambio ? `$${c.tipoCambio.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                    </td>
+                  ))}
+                </tr>
+              )}
 
               {/* Totales */}
               <tr className="border-t-2 border-gray-200 font-semibold">
