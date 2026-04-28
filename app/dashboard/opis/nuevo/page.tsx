@@ -16,8 +16,8 @@ export default async function NuevaOPIPage({ searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const user = session.user as any;
-  if (!["admin", "comprador"].includes(user.rol)) redirect("/dashboard/opis");
+  // Las OPIs se generan automáticamente al aprobar técnicamente un pedido
+  redirect("/dashboard/opis");
 
   const [{ empresas, fincas, ccFincas }, categorias, unidadesDB, pedido] = await Promise.all([
     getFormData(),

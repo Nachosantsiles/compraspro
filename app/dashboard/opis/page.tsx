@@ -5,7 +5,6 @@ import Link from "next/link";
 import { getOPIs } from "@/lib/queries/opis";
 import { StatusBadge, UrgenciaBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EMPRESA_COLORS, formatDate } from "@/lib/utils";
 import type { RolEnum } from "@/types";
@@ -28,7 +27,6 @@ export default async function OPIsPage({ searchParams }: PageProps) {
 
   const user = session.user as any;
   const rol = user.rol as RolEnum;
-  const canCreate = ["admin", "comprador"].includes(rol);
 
   const opis = await getOPIs({
     estado: searchParams.estado,
@@ -44,11 +42,6 @@ export default async function OPIsPage({ searchParams }: PageProps) {
           <h2 className="text-xl font-bold text-gray-900">OPIs</h2>
           <p className="text-sm text-gray-500">{opis.length} registros</p>
         </div>
-        {canCreate && (
-          <Link href="/dashboard/opis/nuevo">
-            <Button>+ Nueva OPI</Button>
-          </Link>
-        )}
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -71,14 +64,7 @@ export default async function OPIsPage({ searchParams }: PageProps) {
         {opis.length === 0 ? (
           <EmptyState
             title="Sin OPIs"
-            description="Aún no se generaron OPIs."
-            action={
-              canCreate ? (
-                <Link href="/dashboard/opis/nuevo">
-                  <Button>Crear primera OPI</Button>
-                </Link>
-              ) : undefined
-            }
+            description="Las OPIs se generan automáticamente al aprobar técnicamente un pedido."
           />
         ) : (
           <div className="overflow-x-auto">
