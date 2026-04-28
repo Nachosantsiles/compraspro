@@ -129,7 +129,8 @@ export default async function PedidosPage({ searchParams }: PageProps) {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Departamento</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Urgencia</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha pedido</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha aprobación</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">OPI</th>
                 </tr>
               </thead>
@@ -177,6 +178,11 @@ export default async function PedidosPage({ searchParams }: PageProps) {
                       </td>
                       <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
                         {formatDate(p.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">
+                        {p.autTecnica?.fecha && ["aprobada", "aprobada_parcial"].includes(p.autTecnica.estado)
+                          ? <span className="text-green-700 font-medium">{formatDate(p.autTecnica.fecha)}</span>
+                          : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-4 py-3">
                         {p.opi ? (
