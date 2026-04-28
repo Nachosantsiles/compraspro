@@ -133,8 +133,8 @@ export default async function PedidosPage({ searchParams }: PageProps) {
                     <td className="px-6 py-3">
                       {p.centroCosto
                         ? <span className="text-gray-700 text-xs">{p.centroCosto.departamento.nombre}</span>
-                        : p.centroCostoFinca
-                        ? <span className="text-gray-700 text-xs">{p.centroCostoFinca.tipo}</span>
+                        : p.finca
+                        ? <span className="text-gray-700 text-xs">{p.finca.nombre}</span>
                         : <span className="text-gray-400">—</span>}
                     </td>
                     <td className="px-6 py-3">

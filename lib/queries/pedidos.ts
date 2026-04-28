@@ -24,6 +24,7 @@ export async function getPedidos(filters?: {
     },
     include: {
       empresa: true,
+      finca: true,
       centroCosto: { include: { departamento: true } },
       centroCostoFinca: true,
       creador: { select: { id: true, nombre: true, apellido: true, rol: true } },
