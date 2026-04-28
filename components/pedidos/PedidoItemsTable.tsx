@@ -358,29 +358,18 @@ export function PedidoItemsTable({
               </div>
             </div>
 
-            {/* Fila 2: Detalle → Unidad de medida del detalle */}
-            <div className="grid grid-cols-6 gap-3">
-              <div className="col-span-4">
-                <Input
-                  label="Detalle del ítem"
-                  value={row.detalle}
-                  onChange={(e) => update(row.id, "detalle", e.target.value)}
-                  placeholder="Ej: UPN de 8mm de diámetro, Aceite SAE 40, Cable 2.5mm²..."
-                  readOnly={readOnly}
-                />
-              </div>
-              <div className="col-span-2">
-                <Input
-                  label="Unidad medida detalle"
-                  value={row.unidadMedidaDetalle}
-                  onChange={(e) => update(row.id, "unidadMedidaDetalle", e.target.value)}
-                  placeholder="Ej: 6m, 20L, 50kg..."
-                  readOnly={readOnly}
-                />
-              </div>
+            {/* Fila 2: Descripción del ítem */}
+            <div>
+              <Input
+                label="Descripción del ítem"
+                value={row.detalle}
+                onChange={(e) => update(row.id, "detalle", e.target.value)}
+                placeholder="Ej: UPN de 8mm de diámetro, Aceite SAE 40, Cable 2.5mm²..."
+                readOnly={readOnly}
+              />
             </div>
 
-            {/* Fila 3: Cantidad → Presentación → Unidad */}
+            {/* Fila 3: Cantidad → Unidad de medida → Presentación */}
             <div className="grid grid-cols-6 gap-3">
               {/* Cantidad */}
               <div className="col-span-1">
@@ -398,42 +387,6 @@ export function PedidoItemsTable({
                   readOnly={readOnly}
                   required
                 />
-              </div>
-
-              {/* Presentación */}
-              <div className="col-span-3">
-                {newPres?.open ? (
-                  <InlineInput
-                    label="Nueva presentación"
-                    placeholder="Ej: Bidón 20L, Bolsa 50kg..."
-                    value={newPres.nombre}
-                    loading={newPres.loading}
-                    onChange={(v) => setNewPresState((s) => ({ ...s, [row.id]: { ...s[row.id], nombre: v } }))}
-                    onSave={() => handleSaveNewPres(row.id, row.subCategoriaId)}
-                    onCancel={() => cancelNewPres(row.id)}
-                  />
-                ) : presDisp.length === 0 && !readOnly ? (
-                  // Sin presentaciones predefinidas → texto libre
-                  <Input
-                    label="Presentación"
-                    value={row.presentacion}
-                    onChange={(e) => update(row.id, "presentacion", e.target.value)}
-                    placeholder={!row.subCategoriaId ? "Primero elegí subcategoría" : "Ej: Bidón 20L, Bolsa 50kg..."}
-                    readOnly={!row.subCategoriaId}
-                    required
-                  />
-                ) : (
-                  <SearchableSelect
-                    label="Presentación"
-                    value={row.presentacion}
-                    onChange={(v) => handlePresChange(row.id, v)}
-                    disabled={readOnly || !row.subCategoriaId}
-                    required
-                    options={presDisp.map((p) => ({ value: p.nombre, label: p.nombre }))}
-                    pinnedOptions={readOnly || !row.subCategoriaId ? [] : [{ value: NEW_PRES_VALUE, label: "＋ Agregar nueva presentación..." }]}
-                    placeholder={!row.subCategoriaId ? "Primero elegí subcategoría" : "Seleccioná presentación..."}
-                  />
-                )}
               </div>
 
               {/* Unidad de medida */}
@@ -458,6 +411,41 @@ export function PedidoItemsTable({
                       ...unidades.map((u) => ({ value: u, label: u })),
                       ...(readOnly ? [] : [{ value: NEW_UNID_VALUE, label: "＋ Agregar nueva unidad..." }]),
                     ]}
+                  />
+                )}
+              </div>
+
+              {/* Presentación */}
+              <div className="col-span-3">
+                {newPres?.open ? (
+                  <InlineInput
+                    label="Nueva presentación"
+                    placeholder="Ej: Bidón 20L, Bolsa 50kg..."
+                    value={newPres.nombre}
+                    loading={newPres.loading}
+                    onChange={(v) => setNewPresState((s) => ({ ...s, [row.id]: { ...s[row.id], nombre: v } }))}
+                    onSave={() => handleSaveNewPres(row.id, row.subCategoriaId)}
+                    onCancel={() => cancelNewPres(row.id)}
+                  />
+                ) : presDisp.length === 0 && !readOnly ? (
+                  <Input
+                    label="Presentación"
+                    value={row.presentacion}
+                    onChange={(e) => update(row.id, "presentacion", e.target.value)}
+                    placeholder={!row.subCategoriaId ? "Primero elegí subcategoría" : "Ej: Bidón 20L, Bolsa 50kg..."}
+                    readOnly={!row.subCategoriaId}
+                    required
+                  />
+                ) : (
+                  <SearchableSelect
+                    label="Presentación"
+                    value={row.presentacion}
+                    onChange={(v) => handlePresChange(row.id, v)}
+                    disabled={readOnly || !row.subCategoriaId}
+                    required
+                    options={presDisp.map((p) => ({ value: p.nombre, label: p.nombre }))}
+                    pinnedOptions={readOnly || !row.subCategoriaId ? [] : [{ value: NEW_PRES_VALUE, label: "＋ Agregar nueva presentación..." }]}
+                    placeholder={!row.subCategoriaId ? "Primero elegí subcategoría" : "Seleccioná presentación..."}
                   />
                 )}
               </div>

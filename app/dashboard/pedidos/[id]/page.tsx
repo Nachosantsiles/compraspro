@@ -109,7 +109,7 @@ export default async function PedidoDetallePage({ params }: { params: { id: stri
               </div>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-1">Descripción</p>
+              <p className="text-xs text-gray-500 mb-1">Motivo del pedido</p>
               <p className="text-gray-800 text-sm">{pedido.descripcion}</p>
             </div>
           </CardContent>

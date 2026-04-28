@@ -273,10 +273,10 @@ export function PedidoForm({ empresas, fincas, ccFincas, categorias, unidades, d
         </div>
 
         <Textarea
-          label="Descripción general"
+          label="Motivo del pedido"
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
-          placeholder="Descripción del pedido, contexto o motivo de la compra..."
+          placeholder="Motivo o contexto de la compra..."
           required
         />
       </div>
